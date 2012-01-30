@@ -1,0 +1,3 @@
+[submodule "libpappradio"]
+	path = libpappradio
+	url = https://code.google.com/p/libpappradio/
