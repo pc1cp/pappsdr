@@ -106,18 +106,24 @@ SET( CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE
 # build the library to acess the hardware
 ADD_SUBDIRECTORY( libpappradio )
 
-# build the simple sdr-receiver-software if possible
-#FIND_PACKAGE( wxWidgets COMPONENTS core base net )
-#FIND_PACKAGE( Portaudio )
+ADD_SUBDIRECTORY( libsdraudio )
+INCLUDE_DIRECTORIES( libsdraudio )
 
-#IF(wxWidgets_FOUND)
-#    IF(PORTAUDIO_FOUND)
-#        INCLUDE(${wxWidgets_USE_FILE})
-#        INCLUDE_DIRECTORIES( ${PORTAUDIO_INCLUDE_DIRS} )
-#        INCLUDE_DIRECTORIES( ${wxWidgets_INCLUDE_DIRS} )
-#        ADD_SUBDIRECTORY( PappSDR )
-#    ENDIF()
-#ENDIF()
+ADD_SUBDIRECTORY( libkissfft )
+INCLUDE_DIRECTORIES( libkissfft )
+
+# build the simple sdr-receiver-software if possible
+FIND_PACKAGE( wxWidgets COMPONENTS core base net )
+FIND_PACKAGE( Portaudio )
+
+IF(wxWidgets_FOUND)
+    IF(PORTAUDIO_FOUND)
+        INCLUDE(${wxWidgets_USE_FILE})
+        INCLUDE_DIRECTORIES( ${PORTAUDIO_INCLUDE_DIRS} )
+        INCLUDE_DIRECTORIES( ${wxWidgets_INCLUDE_DIRS} )
+        ADD_SUBDIRECTORY( source )
+    ENDIF()
+ENDIF()
 
 # ==============================================================================
 # Try to generate a deb-package for this...
@@ -140,7 +146,7 @@ ADD_SUBDIRECTORY( libpappradio )
 #SET (CPACK_PACKAGE_DESCRIPTION "Simple frontend for the pappradio SDR-receiver")
 #SET (CPACK_PACKAGE_DESCRIPTION_SUMMARY "This package contains a simple control-frontend for the pappradio SDR-receiver (http://www.pappradio.de). This is a developers-snapshot, so please keep in mind, that the one ore other feature still may not be working, like you might hope..." )
 #SET (CPACK_PACKAGE_CONTACT "Stefan Fendt <sfendt@googlemail.com>")
-#SET (CPACK_PACKAGE_LICENSE "GNU Lesser Public License (lGPL V2.0)" )
+#SET (CPACK_PACKAGE_LICENSE "GNU Lesser Public License (lGPL V3.0)" )
 #SET (CPACK_PACKAGE_FILE_NAME "${CMAKE_PROJECT_NAME}_${VERSION}_Ubuntu11.11_Amd64")
 # 
 #SET (CPACK_COMPONENTS_ALL Libraries ApplicationData)
