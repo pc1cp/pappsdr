@@ -276,7 +276,6 @@ void SDRAudio::setAGCTime( double upTime, double downTime )
 {
     if( m_AutomaticGainControl )
     {
-        m_AutomaticGainControl->setUpTime  ( upTime   );
-        m_AutomaticGainControl->setDownTime( downTime );
+        m_AutomaticGainControl->setTime  ( upTime   );
     }
 }

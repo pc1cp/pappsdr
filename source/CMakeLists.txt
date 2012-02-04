@@ -26,7 +26,7 @@ SET( SOURCES    main.hpp
                 separator.hpp )
 
 # add binary resources ...
-SET(ARTPATH "${CMAKE_CURRENT_SOURCE_DIR}/artwork")
+SET(ARTPATH "${CMAKE_CURRENT_SOURCE_DIR}/../artwork")
 SET(GENPATH "${CMAKE_CURRENT_BINARY_DIR}/generated")
 FILE( MAKE_DIRECTORY "${GENPATH}" )
 ADD_EXECUTABLE( bin2c bin2c.cpp )

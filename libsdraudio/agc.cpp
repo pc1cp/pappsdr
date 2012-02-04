@@ -1,8 +1,7 @@
 #include "agc.hpp"
 
 AutomaticGainControl::AutomaticGainControl( double samplerate,
-                                            double upTime,
-                                            double downTime )
+                                            double Time )
     :
     m_SampleRate(samplerate),
     m_Gain(10.f),
@@ -20,8 +19,7 @@ AutomaticGainControl::AutomaticGainControl( double samplerate,
     m_DataLength = (int)(m_SampleRate/5.0);
     m_Data = new ComplexSample[ m_DataLength ];
 
-    setUpTime  ( upTime   );
-    setDownTime( downTime );
+    setTime( Time );
 }
 
 AutomaticGainControl::AutomaticGainControl()
@@ -30,24 +28,13 @@ AutomaticGainControl::AutomaticGainControl()
 }
 
 #include <iostream>
-void AutomaticGainControl::setUpTime( double upTime )
+void AutomaticGainControl::setTime( double time )
 {
-    double nrOfSamplesUp   = (double)m_SampleRate * upTime;
+    double nrOfSamplesUp   = (double)m_SampleRate * time;
 
     // +12 dB in specified Time
     m_GainUp   = pow( 4.00, 1.0/nrOfSamplesUp   );
-
-    std::cerr << "m_GainUp:" << m_GainUp << "\n";
-}
-
-void AutomaticGainControl::setDownTime( double downTime )
-{
-    double nrOfSamplesDown = (double)m_SampleRate * downTime;
-
-    // -12 dB in specified Time
-    m_GainDown = pow( 0.25, 1.0/nrOfSamplesDown );
-
-    std::cerr << "m_GainDown:" << m_GainDown << "\n";
+    m_GainDown = pow( 4.00, 1.0/nrOfSamplesUp   );
 }
 
 ComplexSample AutomaticGainControl::update( ComplexSample& input )

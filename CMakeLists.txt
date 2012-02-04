@@ -11,21 +11,20 @@ SET( CMAKE_MODULE_PATH
      ${CMAKE_MODULE_PATH}
      "${CMAKE_CURRENT_SOURCE_DIR}/cmake" )
 
-INCLUDE_DIRECTORIES( libpappradio )
 
-IF(UNIX)
-    ADD_DEFINITIONS( -Wall
-                     -Wextra
-                     -Werror
-                     -O3
-                     -g
-                     #-pg
-                     -march=native
-                     -msse2
-                     -mfpmath=sse,387
-                     -ffast-math
-                     )
-ENDIF(UNIX)
+#IF(UNIX)
+#    ADD_DEFINITIONS( -Wall
+#                     -Wextra
+#                     #-Werror
+#                     -O3
+#                     -g
+#                     #-pg
+#                     -march=native
+#                     -msse2
+#                     -mfpmath=sse,387
+#                     -ffast-math
+#                     )
+#ENDIF(UNIX)
 
 # ==============================================================================
 # Copy files function
@@ -56,60 +55,63 @@ ENDFUNCTION()
 # Setup output directories
 # ==============================================================================
 
-SET( CMAKE_LIBRARY_OUTPUT_DIRECTORY
-     ${PAPPRADIO_BINARY_DIR}/bin
-     CACHE PATH
-     "Single directory for all libraries" )
-
-SET( CMAKE_RUNTIME_OUTPUT_DIRECTORY
-     ${PAPPRADIO_BINARY_DIR}/bin
-     CACHE PATH
-     "Single directory for all executables" )
-
-SET( CMAKE_ARCHIVE_OUTPUT_DIRECTORY
-     ${PAPPRADIO_BINARY_DIR}/bin
-     CACHE PATH
-     "Single directory for all executables" )
-
-SET( CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG
-     ${PAPPRADIO_BINARY_DIR}/bin
-     CACHE PATH
-     "Single directory for all libraries" )
-
-SET( CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG
-     ${PAPPRADIO_BINARY_DIR}/bin
-     CACHE PATH
-     "Single directory for all executables" )
-
-SET( CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG
-     ${PAPPRADIO_BINARY_DIR}/bin
-     CACHE PATH
-     "Single directory for all executables" )
-
-SET( CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE
-     ${PAPPRADIO_BINARY_DIR}/bin
-     CACHE PATH
-     "Single directory for all libraries" )
-
-SET( CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE
-     ${PAPPRADIO_BINARY_DIR}/bin
-     CACHE PATH
-     "Single directory for all executables" )
-
-SET( CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE
-     ${PAPPRADIO_BINARY_DIR}/bin
-     CACHE PATH
-     "Single directory for all executables" )
+#SET( CMAKE_LIBRARY_OUTPUT_DIRECTORY
+#     ${PAPPSDR_BINARY_DIR}/bin
+#     PATH
+#     "Single directory for all libraries" )
+#
+#SET( CMAKE_RUNTIME_OUTPUT_DIRECTORY
+#     ${PAPPSDR_BINARY_DIR}/bin
+#     PATH
+#     "Single directory for all executables" )
+#
+#SET( CMAKE_ARCHIVE_OUTPUT_DIRECTORY
+#     ${PAPPSDR_BINARY_DIR}/bin
+#     PATH
+#     "Single directory for all executables" )
+#
+#SET( CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG
+#     ${PAPPSDR_BINARY_DIR}/bin
+#     PATH
+#     "Single directory for all libraries" )
+#
+#SET( CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG
+#     ${PAPPSDR_BINARY_DIR}/bin
+#     PATH
+#     "Single directory for all executables" )
+#
+#SET( CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG
+#     ${PAPPSDR_BINARY_DIR}/bin
+#     PATH
+#     "Single directory for all executables" )
+#
+#SET( CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE
+#     ${PAPPSDR_BINARY_DIR}/bin
+#     PATH
+#     "Single directory for all libraries" )
+#
+#SET( CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE
+#     ${PAPPSDR_BINARY_DIR}/bin
+#     PATH
+#     "Single directory for all executables" )
+#
+#SET( CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE
+#     ${PAPPSDR_BINARY_DIR}/bin
+#     PATH
+#     "Single directory for all executables" )
 
 # ==============================================================================
 
 # build the library to acess the hardware
-ADD_SUBDIRECTORY( libpappradio )
+ADD_SUBDIRECTORY   ( libpappradio )
+INCLUDE_DIRECTORIES( libpappradio/source/libpappradio/ )
+MESSAGE( "SEARCH FOR FIX THIS!" )
+INCLUDE_DIRECTORIES( libpappradio/source/hidapi-0.7.0/hidapi/ )
 
-ADD_SUBDIRECTORY( libsdraudio )
+ADD_SUBDIRECTORY   ( libsdraudio )
 INCLUDE_DIRECTORIES( libsdraudio )
 
-ADD_SUBDIRECTORY( libkissfft )
+ADD_SUBDIRECTORY   ( libkissfft )
 INCLUDE_DIRECTORIES( libkissfft )
 
 # build the simple sdr-receiver-software if possible

@@ -239,24 +239,6 @@ bool MyApp::OnInit()
                           << std::endl;
                 break;
             }
-            case Pappradio::ERR_INIT_LIBUSB:
-            {
-                std::cerr << "*** ERROR: Initialization of libusb-1.0 failed.\n"
-                          << std::endl;
-                break;
-            }
-            case Pappradio::ERR_CLAIM_DEVICE:
-            {
-                std::cerr << "*** ERROR: Claiming device failed.\n"
-                          << std::endl;
-                break;
-            }
-            case Pappradio::ERR_OPEN_DEVICE:
-            {
-                std::cerr << "*** ERROR: Opening device failed.\n"
-                          << std::endl;
-                break;
-            }
             case Pappradio::ERR_NONE:
             {
                 std::cerr << "*** SUCCESS: Pappradio opened.\n"
