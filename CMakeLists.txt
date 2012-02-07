@@ -26,6 +26,24 @@ SET( CMAKE_MODULE_PATH
 #                     )
 #ENDIF(UNIX)
 
+IF( MSVC )
+	# for the Microsoft-compilers turn off some misleading and wrong(!)
+	# warnings about standard-library-code, which are intended to urge you
+	# to produce code which is compatible with Microsoft Windows, only...
+	SET( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /D_CRT_SECURE_NO_WARNINGS")
+	SET( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /D_CRT_SECURE_NO_WARNINGS")
+	
+	# we most probably will use exception-handling in c++ ... why ever this
+	# is not fully supported without this flag ... will remain a mystery only
+	# known to M$...
+	SET( CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} /EHsc")
+	SET( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc")
+	
+	# to turn off Microsoft-Compiler-Extensions use this...
+	#SET( CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} /Za")
+	#SET( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Za")	
+ENDIF( MSVC )	
+
 # ==============================================================================
 # Copy files function
 # ==============================================================================
@@ -55,58 +73,24 @@ ENDFUNCTION()
 # Setup output directories
 # ==============================================================================
 
-#SET( CMAKE_LIBRARY_OUTPUT_DIRECTORY
-#     ${PAPPSDR_BINARY_DIR}/bin
-#     PATH
-#     "Single directory for all libraries" )
-#
-#SET( CMAKE_RUNTIME_OUTPUT_DIRECTORY
-#     ${PAPPSDR_BINARY_DIR}/bin
-#     PATH
-#     "Single directory for all executables" )
-#
-#SET( CMAKE_ARCHIVE_OUTPUT_DIRECTORY
-#     ${PAPPSDR_BINARY_DIR}/bin
-#     PATH
-#     "Single directory for all executables" )
-#
-#SET( CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG
-#     ${PAPPSDR_BINARY_DIR}/bin
-#     PATH
-#     "Single directory for all libraries" )
-#
-#SET( CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG
-#     ${PAPPSDR_BINARY_DIR}/bin
-#     PATH
-#     "Single directory for all executables" )
-#
-#SET( CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG
-#     ${PAPPSDR_BINARY_DIR}/bin
-#     PATH
-#     "Single directory for all executables" )
-#
-#SET( CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE
-#     ${PAPPSDR_BINARY_DIR}/bin
-#     PATH
-#     "Single directory for all libraries" )
-#
-#SET( CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE
-#     ${PAPPSDR_BINARY_DIR}/bin
-#     PATH
-#     "Single directory for all executables" )
-#
-#SET( CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE
-#     ${PAPPSDR_BINARY_DIR}/bin
-#     PATH
-#     "Single directory for all executables" )
+#SET( CMAKE_LIBRARY_OUTPUT_DIRECTORY         ${PAPPSDR_BINARY_DIR}/bin )
+#SET( CMAKE_RUNTIME_OUTPUT_DIRECTORY         ${PAPPSDR_BINARY_DIR}/bin )
+#SET( CMAKE_ARCHIVE_OUTPUT_DIRECTORY         ${PAPPSDR_BINARY_DIR}/bin )
+#SET( CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG   ${PAPPSDR_BINARY_DIR}/bin )
+#SET( CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG   ${PAPPSDR_BINARY_DIR}/bin )
+#SET( CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG   ${PAPPSDR_BINARY_DIR}/bin )
+#SET( CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE ${PAPPSDR_BINARY_DIR}/bin )
+#SET( CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${PAPPSDR_BINARY_DIR}/bin )
+#SET( CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${PAPPSDR_BINARY_DIR}/bin )
 
 # ==============================================================================
 
 # build the library to acess the hardware
 ADD_SUBDIRECTORY   ( libpappradio )
 INCLUDE_DIRECTORIES( libpappradio/source/libpappradio/ )
-MESSAGE( "SEARCH FOR FIX THIS!" )
-INCLUDE_DIRECTORIES( libpappradio/source/hidapi-0.7.0/hidapi/ )
+
+#MESSAGE( "SEARCH FOR FIX THIS!" )
+#INCLUDE_DIRECTORIES( libpappradio/source/hidapi-0.7.0/hidapi/ )
 
 ADD_SUBDIRECTORY   ( libsdraudio )
 INCLUDE_DIRECTORIES( libsdraudio )

@@ -3,11 +3,11 @@
 extern const wxEventType wxLOFreqChanged;
 extern const wxEventType wxFreqChanged;
 
-extern char LCD_background_png[];
-extern char LCD_backgrounddB_png[];
-extern char LCD_foreground_png[];
-extern char LCD_largenumbers_png[];
-extern char LCD_smallnumbers_png[];
+extern unsigned char LCD_background_png[];
+extern unsigned char LCD_backgrounddB_png[];
+extern unsigned char LCD_foreground_png[];
+extern unsigned char LCD_largenumbers_png[];
+extern unsigned char LCD_smallnumbers_png[];
 
 extern unsigned long LCD_background_png_size;
 extern unsigned long LCD_backgrounddB_png_size;

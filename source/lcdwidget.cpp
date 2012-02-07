@@ -240,16 +240,16 @@ void wxCustomLCDisplay::render( wxDC& dc )
     dc.Blit( 0, 0, m_Size.x, m_Size.y, &m_MemoryDC, 0, 0, wxCOPY, false);
 
     // Blit upper region to active-background for squelch-level
-    wxCoord lengthSQ = (wxCoord)(round(482.f/3.f*m_SquelchLevel)*3.f);
+    wxCoord lengthSQ = (wxCoord)(floor(0.5+482.f/3.f*m_SquelchLevel)*3.f);
     m_MemoryDC.SelectObject(*m_LCDBitmap2);
     dc.Blit( 15, 12, lengthSQ, 6, &m_MemoryDC, 15, 12, wxCOPY, false);
 
     // Blit upper region to active-background for signal-level
-    wxCoord lengthSI = (wxCoord)(round(482.f/3.f*m_SignalLevel)*3.f);
+    wxCoord lengthSI = (wxCoord)(floor(0.5+482.f/3.f*m_SignalLevel)*3.f);
     dc.Blit( 15, 20, lengthSI, 10, &m_MemoryDC, 15, 20, wxCOPY, false);
 
     // Blit upper region to active-background for signal-level
-    wxCoord lengthSP = (wxCoord)(round(482.f/3.f*m_SignalLevelPeak)*3.f);
+    wxCoord lengthSP = (wxCoord)(floor(0.5+482.f/3.f*m_SignalLevelPeak)*3.f);
     dc.Blit( 15+lengthSP, 20, 2, 10, &m_MemoryDC, 15, 20, wxCOPY, false);
 
     // free memory-DC after painting (required for Win32)

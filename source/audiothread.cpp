@@ -1,6 +1,8 @@
 #include "audiothread.hpp"
-#include <iostream>
 #include "config.hpp"
+
+#include <iostream>
+#include <ciso646>
 
 
 double  AudioThread::s_TestSampleRates[]    = { 192000.0,
@@ -13,6 +15,7 @@ int     AudioThread::s_NrOfTestSampleRates  = 1;
 
 AudioThread::AudioThread()
 {
+	wxLogStatus( _("AudioThread::AudioThread();") );
     m_SDRAudio = 0;
 
     m_ReconfigureFlag = false;
@@ -24,14 +27,17 @@ AudioThread::AudioThread()
     m_InputQueue.resize ( 1000000 );
     m_AudioFFTQueue.resize ( 1000000 );
 
-    // set initial AudioState to UNCONFIGURED
-    m_AudioState = CLOSED;
+	wxLogStatus( _("    AudioQueues set up.") );
+
+    // set initial AudioState to UNCONFIGURED/CLOSED
+    m_AudioState = STATE_CLOSED;
 
     // set Attenuator = 0.0 dB
     m_AttenuatorValue = 1.f;
 
-    std::cerr << "\nOutputQueueSize = " << m_OutputQueue.size() << "\n";
-    std::cerr << "InputQueueSize  = "   << m_InputQueue.size () << "\n";
+	wxLogStatus( _("        OutputQueue-Size = %i"),   m_OutputQueue.size() );
+	wxLogStatus( _("         InputQueue-Size = %i"),    m_InputQueue.size() );
+	wxLogStatus( _("       AF-FFT-Queue-Size = %i"), m_AudioFFTQueue.size() );
 }
 
 void* AudioThread::Entry()
@@ -47,26 +53,26 @@ void* AudioThread::Entry()
         // Check Audio-Device-State every 100 ms
         switch( m_AudioState )
         {
-            case CLOSED:
+            case STATE_CLOSED:
             {
-                std::cerr << "STATE: CLOSED\n";
+                wxLogStatus( _("Audiothread-STATE: CLOSED") );
                 // closed ?!? Then try to configure it...
                 Configure();
                 break;
             }
-            case OPEN:
+            case STATE_OPEN:
             {
-                std::cerr << "STATE: OPEN\n";
+                wxLogStatus( _("Audiothread-STATE: OPEN") );
 
                 // Open, but not running? Then start it by all means...
                 Pa_StartStream( m_PaStream );
                 m_PaStreamIsActive = true;
 
                 // change audio-state to running...
-                m_AudioState = RUNNING;
+                m_AudioState = STATE_RUNNING;
                 break;
             }
-            case ERROR:
+            case STATE_ERROR:
             {
                 // close all active streams ...
                 if( m_PaStreamIsActive )
@@ -83,9 +89,9 @@ void* AudioThread::Entry()
 
                 // now wait here(!) until the user changes the configuration
                 // again
-                while( m_AudioState == ERROR )
+                while( m_AudioState == STATE_ERROR )
                 {
-                    std::cerr << "STATE: *** ERROR *** \n";
+                    wxLogStatus( _("Audiothread-STATE: *** ERROR ***") );
 
                     // Check for reconfiguration-request...
                     m_ReconfigureLock.Lock();
@@ -95,14 +101,14 @@ void* AudioThread::Entry()
                         m_ReconfigureFlag = false;
 
                         // change AudioState
-                        m_AudioState = CLOSED;
+                        m_AudioState = STATE_CLOSED;
                     }
                     m_ReconfigureLock.Unlock();
                     Sleep( 1000 ); // wait a second
                 }
                 break;
             }
-            case RUNNING:
+            case STATE_RUNNING:
             default:
             {
                 // do nothing but wait for reconfigure-flag... and check that
@@ -110,7 +116,7 @@ void* AudioThread::Entry()
 
                 cnt = (cnt+1)%40;
                 if( cnt==0 )
-                std::cerr << "STATE: RUNNING\n";
+                wxLogStatus( _("Audiothread-STATE: RUNNING") );
 
                 // Check for reconfiguration-request...
                 m_ReconfigureLock.Lock();
@@ -127,7 +133,7 @@ void* AudioThread::Entry()
                     m_ReconfigureFlag = false;
 
                     // change AudioState
-                    m_AudioState = CLOSED;
+                    m_AudioState = STATE_CLOSED;
                 }
                 m_ReconfigureLock.Unlock();
 
@@ -137,7 +143,7 @@ void* AudioThread::Entry()
                 {
                     if( Pa_IsStreamActive( m_PaStream ) != 1 )
                     {
-                        m_AudioState = ERROR;
+                        m_AudioState = STATE_ERROR;
                     }
                 }
             }
@@ -171,8 +177,10 @@ void    AudioThread::Configure()
     // test desired output-device for allowed sample-rates
     // ------------------------------------------------------------------------
     // ------------------------------------------------------------------------
-    int PortaudioDeviceIndex = config->getOutputDevice_PA();
-    m_SampleRate = GetSampleRate( PortaudioDeviceIndex );
+    int PortaudioDeviceIndexOut = config->getOutputDevice_PA();
+    int PortaudioDeviceIndexIn  = config->getInputDevice_PA ();
+
+    m_SampleRate = GetSampleRate( PortaudioDeviceIndexOut );
 
     // if we got a valid result, then open the output-device
     if( m_SampleRate > 0 and everythingIsOk )
@@ -184,7 +192,7 @@ void    AudioThread::Configure()
         memset( &m_PaParametersIn,  0, sizeof( m_PaParametersIn ) );
         memset( &m_PaParametersOut, 0, sizeof( m_PaParametersOut ) );
 
-        double inputLatency  = Pa_GetDeviceInfo( PortaudioDeviceIndex )
+        double inputLatency  = Pa_GetDeviceInfo( PortaudioDeviceIndexOut )
                                ->defaultHighInputLatency;
         double outputLatency = inputLatency;
 
@@ -193,13 +201,13 @@ void    AudioThread::Configure()
 
         m_FramesPerBuffer = inputLatency*m_SampleRate/10.0;
 
-        m_PaParametersOut.device                    = PortaudioDeviceIndex;
+        m_PaParametersOut.device                    = PortaudioDeviceIndexOut;
         m_PaParametersOut.channelCount              = 2;
         m_PaParametersOut.suggestedLatency          = outputLatency*3;
         m_PaParametersOut.sampleFormat              = paFloat32;
         m_PaParametersOut.hostApiSpecificStreamInfo = NULL;
 
-        m_PaParametersIn.device                     = PortaudioDeviceIndex;
+        m_PaParametersIn.device                     = PortaudioDeviceIndexIn;
         m_PaParametersIn.channelCount               = 2;
         m_PaParametersIn.suggestedLatency           = inputLatency*3;
         m_PaParametersIn.sampleFormat               = paFloat32;
@@ -239,7 +247,7 @@ void    AudioThread::Configure()
     if( everythingIsOk )
     {
         // Yessss.... we're open, now... ;-)
-        m_AudioState = OPEN;
+        m_AudioState = STATE_OPEN;
         std::cerr << "Sample-Rate  = " << m_SampleRate << "\n";
 
         delete m_SDRAudio;
@@ -255,7 +263,7 @@ void    AudioThread::Configure()
             Pa_CloseStream( &m_PaStream );
         }
 
-        m_AudioState = ERROR;
+        m_AudioState = STATE_ERROR;
     }
 }
 

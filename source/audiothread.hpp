@@ -44,10 +44,10 @@ class AudioThread: public wxThread
 
     enum AUDIOSTATE
     {
-        ERROR,
-        CLOSED,
-        OPEN,
-        RUNNING
+        STATE_ERROR,
+        STATE_CLOSED,
+        STATE_OPEN,
+        STATE_RUNNING
     };
 
     enum AUDIOSTATE     m_AudioState;

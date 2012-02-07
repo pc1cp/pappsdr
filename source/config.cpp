@@ -2,6 +2,8 @@
 #include "config.hpp"
 #include "sounddevicedialog.hpp"
 
+#include <ciso646>
+
 GlobalConfig::GlobalConfig()
 {
     m_AudioThread = 0;
@@ -126,18 +128,18 @@ bool GlobalConfig::startAudioThread()
     m_AudioThread = new AudioThread();
     if( m_AudioThread->Create() != wxTHREAD_NO_ERROR )
     {
-        std::cerr << "Can't create audio-thread\n";
+        wxLogStatus( _("Can't create audio-thread.") );
         return( false );
     }
 
     // Try to set it to have a high priority (if we *can* set it, which is not
     // always the case )
-    m_AudioThread->SetPriority(100);
+    //m_AudioThread->SetPriority(100);
 
     // ... and really start it ...
     if( m_AudioThread->Run() != wxTHREAD_NO_ERROR)
     {
-        std::cerr << "Can't start audio-thread\n";
+        wxLogStatus( _("Can't start audio-thread." ) );
         return( false );
     }
 

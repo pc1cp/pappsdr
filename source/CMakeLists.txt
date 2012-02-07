@@ -63,7 +63,7 @@ ADD_BINARY_RESOURCE( "${ARTPATH}/separator.png" )
 ADD_BINARY_RESOURCE( "${ARTPATH}/Icon.png" )
 
 # we would like to build a program
-ADD_EXECUTABLE( PappSDR ${SOURCES} ${RESOURCES} )
+ADD_EXECUTABLE( PappSDR WIN32 ${SOURCES} ${RESOURCES} )
 TARGET_LINK_LIBRARIES(  PappSDR
                         pappradio
                         sdraudio

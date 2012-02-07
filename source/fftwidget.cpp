@@ -373,10 +373,10 @@ void wxCustomFFTDisplay::drawScale()
         for( int x=-100; x<1024+100; ++x )
         {
             float f = m_MinFrequency + delta*(float)x;
-            if( fabs(round(f/10000.f) - f/10000.f)*10000.f < delta/2.f )
+            if( fabs(floor(0.5+f/10000.f) - f/10000.f)*10000.f < delta/2.f )
             {
                 wxString label;
-                label.Printf( _("%3.3f"), round(f/1000.f)/1000.f );
+                label.Printf( _("%3.3f"), floor(0.5+f/1000.f)/1000.f );
                 wxCoord extX, extY;
                 m_DestinDC.GetTextExtent( label, &extX, &extY );
                 m_DestinDC.DrawText( label, x-extX/2, m_Height-32+16 );
@@ -387,7 +387,7 @@ void wxCustomFFTDisplay::drawScale()
                 m_DestinDC.DrawLine( x+1, m_Height-32, x+1, m_Height-32+14 );
             }
             else
-            if( fabs(round(f/5000.f) - f/5000.f)*5000.f < delta/2.f )
+            if( fabs(floor(0.5+f/5000.f) - f/5000.f)*5000.f < delta/2.f )
             {
                 m_DestinDC.SetPen  ( wxColour( 128, 128, 128 ) );
                 m_DestinDC.DrawLine( x  , m_Height-32, x  , m_Height-32+8 );
@@ -395,7 +395,7 @@ void wxCustomFFTDisplay::drawScale()
                 m_DestinDC.DrawLine( x+1, m_Height-32, x+1, m_Height-32+8 );
             }
             else
-            if( fabs(round(f/1000.f) - f/1000.f)*1000.f < delta/2.f )
+            if( fabs(floor(0.5+f/1000.f) - f/1000.f)*1000.f < delta/2.f )
             {
                 m_DestinDC.SetPen  ( wxColour( 128, 128, 128 ) );
                 m_DestinDC.DrawLine( x , m_Height-32, x , m_Height-32+3 );
@@ -409,22 +409,22 @@ void wxCustomFFTDisplay::drawScale()
     for( int x=-100; x<1024+100; ++x )
     {
         float f = delta*(float)x;
-        if( fabs(round(f/1000.f) - f/1000.f)*1000.f < delta/2.f )
+        if( fabs(floor(0.5+f/1000.f) - f/1000.f)*1000.f < delta/2.f )
         {
             wxString label;
-            label.Printf( _("%1.1f"), round(f/1000.f) );
+            label.Printf( _("%1.1f"), floor(0.5+f/1000.f) );
             wxCoord extX, extY;
             m_DestinDC.GetTextExtent( label, &extX, &extY );
             m_DestinDC.DrawLine( x, m_Height-32, x, m_Height-32+14 );
             m_DestinDC.DrawText( label, x-extX/2, m_Height-32+16 );
         }
         else
-        if( fabs(round(f/500.f) - f/500.f)*500.f < delta/2.f )
+        if( fabs(floor(0.5+f/500.f) - f/500.f)*500.f < delta/2.f )
         {
             m_DestinDC.DrawLine( x, m_Height-32, x, m_Height-32+8 );
         }
         else
-        if( fabs(round(f/100.f) - f/100.f)*100.f < delta/2.f )
+        if( fabs(floor(0.5+f/100.f) - f/100.f)*100.f < delta/2.f )
         {
             m_DestinDC.DrawLine( x, m_Height-32, x, m_Height-32+3 );
         }

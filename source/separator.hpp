@@ -11,7 +11,7 @@
 
 #include "config.hpp"
 
-extern char separator_png[];
+extern unsigned char separator_png[];
 
 extern unsigned long separator_png_size;
 

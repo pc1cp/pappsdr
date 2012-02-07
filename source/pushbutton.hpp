@@ -11,10 +11,10 @@
 
 #include "config.hpp"
 
-extern char pushbutton_png[];
-extern char pushbutton_hover_png[];
-extern char pushbutton_active_png[];
-extern char pushbutton_active_hover_png[];
+extern unsigned char pushbutton_png[];
+extern unsigned char pushbutton_hover_png[];
+extern unsigned char pushbutton_active_png[];
+extern unsigned char pushbutton_active_hover_png[];
 
 extern unsigned long pushbutton_png_size;
 extern unsigned long pushbutton_hover_png_size;

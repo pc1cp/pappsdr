@@ -37,7 +37,7 @@ int main( int argc, char** argv )
             << "\n"
             << "unsigned long " << argv[2] << "_size = "
                                 << length_of_file << ";\n"
-            << "char " << argv[2] << "[] = \n" //"[" << length_of_file << "] = \n"
+            << "unsigned char " << argv[2] << "[] = \n" //"[" << length_of_file << "] = \n"
             << "{\n";
 
             int count=0;

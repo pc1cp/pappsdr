@@ -1,5 +1,7 @@
 #include "main.hpp"
 
+#include "wx/log.h"
+
 class MyApp : public wxApp
 {
     public:
@@ -206,13 +208,17 @@ IMPLEMENT_APP(MyApp)
 
 bool MyApp::OnInit()
 {
+	wxLogWindow* logwindow = new wxLogWindow( 0, _("Logging") );
+	logwindow->Show();
+
     // We do not want to have only BMPs...
     wxInitAllImageHandlers();
 
     m_Pappradio = new Pappradio;
 
     GlobalConfig* config = GlobalConfig::getInstance();
-    config->startAudioThread();
+    //config->startAudioThread();
+	//wxLogStatus( _("Audiothread started.") );
 
     MyFrame *frame = new MyFrame( wxT("Pappradio SDR"), m_Pappradio );
     frame->Show(true);
@@ -224,9 +230,14 @@ bool MyApp::OnInit()
     {
         if( !m_Pappradio->loadFQData( "~/fqdata.dat" ) )
         {
-            m_Pappradio->loadFQData( "/usr/share/PappSDR/fqdata.dat" );
+            if( !m_Pappradio->loadFQData( "/usr/share/PappSDR/fqdata.dat" ) )
+			{
+				wxMessageBox( _("unable to load fqdata.dat") );
+			}
         }
     }
+	wxLogStatus( _("fqdata.dat loaded") );
+
     result = m_Pappradio->open();
 
     if( result != Pappradio::ERR_NONE )
@@ -246,7 +257,7 @@ bool MyApp::OnInit()
                 break;
             }
         }
-        return false;
+        //return false;
     }
 
     m_Pappradio->setFilter( Pappradio::BP_04000_07500 );
@@ -951,7 +962,7 @@ void MyFrame::onFFTClicked( wxCommandEvent& event )
     double currentLOFrequency = m_LCDisplay->getLOFreqDisplay();
     double targetFrequency = currentLOFrequency + newTuneFrequency;
 
-    targetFrequency = round(targetFrequency/500.0)*500.0;
+    targetFrequency = floor(targetFrequency/500.0+0.5)*500.0;
     targetFrequency = targetFrequency - currentLOFrequency;
     newTuneFrequency = targetFrequency;
 
