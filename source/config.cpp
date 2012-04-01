@@ -59,10 +59,6 @@ GlobalConfig::GlobalConfig()
 #ifndef _WIN32
             if( DeviceInfo->maxOutputChannels >= 2 )
 				HostApiInfo->type == paALSA )
-#else
-            if( DeviceInfo->maxOutputChannels >= 2 &&
-				HostApiInfo->type == paWDMKS )
-#endif
             {
                 // add audio-device to list of usable audio-devices.
                 AudioDevice_t entry;
@@ -70,6 +66,47 @@ GlobalConfig::GlobalConfig()
                 entry.NumericID = i;
                 m_AudioOutputDevices.push_back( entry );
             }
+#else
+            if( DeviceInfo->maxOutputChannels >= 2 &&
+				HostApiInfo->type == paWDMKS      )
+            {
+                // add audio-device to list of usable audio-devices.
+                AudioDevice_t entry;
+                entry.Name = _("[WDMKS] - ")+wxString::From8BitData(DeviceInfo->name);
+                entry.NumericID = i;
+                m_AudioOutputDevices.push_back( entry );
+            }
+
+            if( DeviceInfo->maxOutputChannels >= 2 &&
+				HostApiInfo->type == paWASAPI      )
+            {
+                // add audio-device to list of usable audio-devices.
+                AudioDevice_t entry;
+                entry.Name = _("[WASAPI] - ")+wxString::From8BitData(DeviceInfo->name);
+                entry.NumericID = i;
+                m_AudioOutputDevices.push_back( entry );
+            }
+
+            if( DeviceInfo->maxOutputChannels >= 2 &&
+				HostApiInfo->type == paMME         )
+            {
+                // add audio-device to list of usable audio-devices.
+                AudioDevice_t entry;
+                entry.Name = _("[MME] - ")+wxString::From8BitData(DeviceInfo->name);
+                entry.NumericID = i;
+                m_AudioOutputDevices.push_back( entry );
+            }
+
+            if( DeviceInfo->maxOutputChannels >= 2 &&
+				HostApiInfo->type == paDirectSound  )
+            {
+                // add audio-device to list of usable audio-devices.
+                AudioDevice_t entry;
+                entry.Name = _("[DirectSound] - ")+wxString::From8BitData(DeviceInfo->name);
+                entry.NumericID = i;
+                m_AudioOutputDevices.push_back( entry );
+            }
+#endif
         }
 
         // Build up list of usable input devices...
@@ -81,10 +118,6 @@ GlobalConfig::GlobalConfig()
 #ifndef _WIN32
             if( DeviceInfo->maxInputChannels >= 2 )
 				HostApiInfo->type == paALSA )
-#else
-            if( DeviceInfo->maxInputChannels >= 2 &&
-				HostApiInfo->type == paWDMKS )
-#endif
             {
                 // add audio-device to list of usable audio-devices.
                 AudioDevice_t entry;
@@ -92,6 +125,47 @@ GlobalConfig::GlobalConfig()
                 entry.NumericID = i;
                 m_AudioInputDevices.push_back( entry );
             }
+#else
+            if( DeviceInfo->maxInputChannels >= 2 &&
+				HostApiInfo->type == paWDMKS      )
+            {
+                // add audio-device to list of usable audio-devices.
+                AudioDevice_t entry;
+                entry.Name = _("[WDMKS] - ") + wxString::From8BitData(DeviceInfo->name);
+                entry.NumericID = i;
+                m_AudioInputDevices.push_back( entry );
+            }
+
+            if( DeviceInfo->maxInputChannels >= 2 &&
+				HostApiInfo->type == paWASAPI     )
+            {
+                // add audio-device to list of usable audio-devices.
+                AudioDevice_t entry;
+                entry.Name = _("[WASAPI] - ") + wxString::From8BitData(DeviceInfo->name);
+                entry.NumericID = i;
+                m_AudioInputDevices.push_back( entry );
+            }
+
+            if( DeviceInfo->maxInputChannels >= 2 &&
+				HostApiInfo->type == paMME      )
+            {
+                // add audio-device to list of usable audio-devices.
+                AudioDevice_t entry;
+                entry.Name = _("[MME] - ") + wxString::From8BitData(DeviceInfo->name);
+                entry.NumericID = i;
+                m_AudioInputDevices.push_back( entry );
+            }
+
+            if( DeviceInfo->maxInputChannels >= 2 &&
+				HostApiInfo->type == paDirectSound )
+            {
+                // add audio-device to list of usable audio-devices.
+                AudioDevice_t entry;
+                entry.Name = _("[DirectSound] - ") + wxString::From8BitData(DeviceInfo->name);
+                entry.NumericID = i;
+                m_AudioInputDevices.push_back( entry );
+            }
+#endif
         }
     }
 
