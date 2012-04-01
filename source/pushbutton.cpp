@@ -92,7 +92,11 @@ wxCustomPushButton::wxCustomPushButton( wxWindow* parent,
     SetMaxSize( m_Size );
 
     // aquire font of appropriate size
+#ifdef _WIN32 
+    m_Font = wxFont::New( wxSize( 0, 12 ), wxFONTFAMILY_SWISS );
+#else
     m_Font = wxFont::New( wxSize( 0, 13 ), wxFONTFAMILY_SWISS );
+#endif
 
     // default is not hoverd
     m_Hover = false;

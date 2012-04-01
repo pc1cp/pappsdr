@@ -52,7 +52,12 @@ wxCustomSeparator::wxCustomSeparator( wxWindow* parent,
     SetMaxSize( m_Size );
 
     // aquire font of appropriate size
-    m_Font = wxFont::New( wxSize( 0, 18 ), wxFONTFAMILY_SWISS );
+#ifdef _WIN32
+    m_Font = wxFont::New( wxSize( 0, 16 ), wxFONTFAMILY_SWISS );
+#else
+	m_Font = wxFont::New( wxSize( 0, 18 ), wxFONTFAMILY_SWISS );
+#endif
+
 }
 
 
