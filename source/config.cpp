@@ -1,6 +1,7 @@
 
 #include "config.hpp"
 #include "sounddevicedialog.hpp"
+#include "configdialog.hpp"
 
 #include <ciso646>
 
@@ -24,7 +25,7 @@ GlobalConfig::GlobalConfig()
     nDevices = Pa_GetDeviceCount();
     if( nDevices < 0 )
     {
-        std::cerr << "Error, Pa_CountDevices returned " << nDevices << "\n";
+        wxLogStatus( _("Error, Pa_CountDevices returned : %i"), nDevices );
         err = nDevices;
         std::cerr << "Error initializing Portaudio: " << Pa_GetErrorText( err )
                   << "\n";
@@ -37,12 +38,31 @@ GlobalConfig::GlobalConfig()
 
         const PaDeviceInfo* DeviceInfo;
 
+        for( int i=0; i<nDevices; i++ )
+        {
+            DeviceInfo = Pa_GetDeviceInfo( i );
+			wxLogStatus( _("Device-Index: %i"), i );
+			wxLogStatus( _("Device-Name: %s"), wxString::From8BitData(DeviceInfo->name) );
+			wxLogStatus( _("Device-Max-Input-Channels: %i"), DeviceInfo->maxInputChannels );
+			wxLogStatus( _("Device-Max-Output-Channels: %i"), DeviceInfo->maxOutputChannels );
+			const PaHostApiInfo* HostApiInfo = Pa_GetHostApiInfo( DeviceInfo->hostApi );
+			wxLogStatus( _("Device-Host-API: %s"), wxString::From8BitData(HostApiInfo->name) );												   
+			wxLogStatus( _(" ") );
+		}
+
         // Build up list of usable output devices...
         for( int i=0; i<nDevices; i++ )
         {
             DeviceInfo = Pa_GetDeviceInfo( i );
+			const PaHostApiInfo* HostApiInfo = Pa_GetHostApiInfo( DeviceInfo->hostApi );
 
+#ifndef _WIN32
             if( DeviceInfo->maxOutputChannels >= 2 )
+				HostApiInfo->type == paALSA )
+#else
+            if( DeviceInfo->maxOutputChannels >= 2 &&
+				HostApiInfo->type == paWDMKS )
+#endif
             {
                 // add audio-device to list of usable audio-devices.
                 AudioDevice_t entry;
@@ -56,8 +76,15 @@ GlobalConfig::GlobalConfig()
         for( int i=0; i<nDevices; i++ )
         {
             DeviceInfo = Pa_GetDeviceInfo( i );
+			const PaHostApiInfo* HostApiInfo = Pa_GetHostApiInfo( DeviceInfo->hostApi );
 
+#ifndef _WIN32
             if( DeviceInfo->maxInputChannels >= 2 )
+				HostApiInfo->type == paALSA )
+#else
+            if( DeviceInfo->maxInputChannels >= 2 &&
+				HostApiInfo->type == paWDMKS )
+#endif
             {
                 // add audio-device to list of usable audio-devices.
                 AudioDevice_t entry;
@@ -68,12 +95,11 @@ GlobalConfig::GlobalConfig()
         }
     }
 
-    std::cerr << "\n\nFound this list of usable *INPUT* Audio-Devices:\n\n";
+    wxLogStatus ( _("Found this list of usable *INPUT* Audio-Devices:" ) );
     for( unsigned int i=0; i<m_AudioInputDevices.size(); i++)
     {
-        std::cerr << "Index: "        << m_AudioInputDevices[i].NumericID
-                  << "\tDevicename: " << m_AudioInputDevices[i].Name.mb_str()
-                  << "\n";
+        wxLogStatus( _("Index: %i"), m_AudioInputDevices[i].NumericID );
+        wxLogStatus( _("Devicename: %s"), m_AudioInputDevices[i].Name );
     }
 
     std::cerr << "\n\nFound this list of usable *OUTPUT* Audio-Devices:\n\n";
@@ -96,12 +122,15 @@ void GlobalConfig::chooseSoundDevices()
 {
     bool lastState = m_AudioIsConfigured;
 
-    MySoundDeviceDialog SoundDeviceDialog(0);
+    //MySoundDeviceDialog SoundDeviceDialog(0);
+    //
+    //if ( SoundDeviceDialog.ShowModal() == wxID_OK )
+    //{
+    //    std::cerr << "OK pressed\n";
+    //}
 
-    if ( SoundDeviceDialog.ShowModal() == wxID_OK )
-    {
-        std::cerr << "OK pressed\n";
-    }
+    wxCustomConfigDialog configDialog;
+    configDialog.ShowModal();
 
     // flag audio to be configured, now...
     m_AudioIsConfigured = true;
@@ -179,9 +208,10 @@ int GlobalConfig::getInputDevice_PA()
 
 double GlobalConfig::getInputSampleRate()
 {
-    if( m_AudioThread )
+    if( m_AudioThread and
+		m_AudioThread->IsRunning() )
     {
-        return( m_AudioThread->getInputSoundCardSampleRate() );
+        return( m_AudioThread->getSampleRate() );
     }
 
     return( 0 );
@@ -189,9 +219,10 @@ double GlobalConfig::getInputSampleRate()
 
 double GlobalConfig::getProcessingSampleRate()
 {
-    if( m_AudioThread )
+    if( m_AudioThread and
+		m_AudioThread->IsRunning())
     {
-        return( m_AudioThread->getProcessingSampleRate() );
+        return( m_AudioThread->getSampleRate() );
     }
 
     return( 0 );
@@ -211,7 +242,8 @@ void GlobalConfig::setInputDevice(int index)
 
 AudioQueue* GlobalConfig::getFFTQueueRF()
 {
-    if( m_AudioThread )
+    if( m_AudioThread and
+		m_AudioThread->IsRunning())
     {
         return( m_AudioThread->getFFTQueueRF() );
     }
@@ -221,7 +253,8 @@ AudioQueue* GlobalConfig::getFFTQueueRF()
 
 AudioQueue* GlobalConfig::getFFTQueueAF()
 {
-    if( m_AudioThread )
+    if( m_AudioThread and
+		m_AudioThread->IsRunning())
     {
         return( m_AudioThread->getFFTQueueAF() );
     }
@@ -231,7 +264,8 @@ AudioQueue* GlobalConfig::getFFTQueueAF()
 
 void GlobalConfig::setFilter( float bandwidth )
 {
-    if( m_AudioThread )
+    if( m_AudioThread and
+		m_AudioThread->IsRunning())
     {
         m_AudioThread->setFilter( bandwidth );
     }
@@ -239,7 +273,8 @@ void GlobalConfig::setFilter( float bandwidth )
 
 void GlobalConfig::setTune( float frequency )
 {
-    if( m_AudioThread )
+    if( m_AudioThread and
+		m_AudioThread->IsRunning())
     {
         m_AudioThread->setTune( frequency );
     }
@@ -247,7 +282,8 @@ void GlobalConfig::setTune( float frequency )
 
 void GlobalConfig::setMode( SDRAudio::SDR_MODE mode )
 {
-    if( m_AudioThread )
+    if( m_AudioThread and
+		m_AudioThread->IsRunning())
     {
         m_AudioThread->setMode( mode );
     }
@@ -255,7 +291,8 @@ void GlobalConfig::setMode( SDRAudio::SDR_MODE mode )
 
 float GlobalConfig::getSignalLevel()
 {
-    if( m_AudioThread )
+    if( m_AudioThread and
+		m_AudioThread->IsRunning())
     {
         return( m_AudioThread->getSignalLevel() );
     }
@@ -264,7 +301,8 @@ float GlobalConfig::getSignalLevel()
 
 float GlobalConfig::getSquelchLevel()
 {
-    if( m_AudioThread )
+    if( m_AudioThread and
+		m_AudioThread->IsRunning())
     {
         return( m_AudioThread->getSquelchLevel() );
     }
@@ -273,7 +311,8 @@ float GlobalConfig::getSquelchLevel()
 
 void GlobalConfig::setSquelchLevel(float level)
 {
-    if( m_AudioThread )
+    if( m_AudioThread and
+		m_AudioThread->IsRunning())
     {
         m_AudioThread->setSquelchLevel(level);
     }
@@ -281,7 +320,8 @@ void GlobalConfig::setSquelchLevel(float level)
 
 void GlobalConfig::setAGCTime( double upTime, double downTime )
 {
-    if( m_AudioThread )
+    if( m_AudioThread and
+		m_AudioThread->IsRunning())
     {
         m_AudioThread->setAGCTime( upTime, downTime  );
     }
@@ -289,7 +329,8 @@ void GlobalConfig::setAGCTime( double upTime, double downTime )
 
 void GlobalConfig::setATTdB( double AttenuatorValue )
 {
-    if( m_AudioThread )
+    if( m_AudioThread and
+		m_AudioThread->IsRunning())
     {
         float factor = 1.0/powf(10.f,AttenuatorValue/20.f);
         m_AudioThread->setATTCompensation(factor);

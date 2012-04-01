@@ -5,6 +5,8 @@
 #include <vector>
 
 #include "wx/wx.h"
+#include "wx/thread.h"
+#include "wx/config.h"
 #include "audiothread.hpp"
 
 // Audio-Device-Struct...
@@ -13,6 +15,96 @@ typedef struct
     wxString Name;
     int NumericID;
 } AudioDevice_t;
+
+// structure to hold frequency-dependend Pappradio-Settings
+typedef struct
+{
+    double          m_Fmin;
+    double          m_Fmax;
+    int             m_AttenuatorIndex;
+    int             m_FilterIndex;
+} FrequencySettings_t;
+
+class ConfigRegistry
+{
+    public:
+    ConfigRegistry()
+    {
+        m_Config = new wxConfig("PappSDR");
+
+        // load settings ------------------------------------------------------
+        loadSettings();
+    }
+
+    ~ConfigRegistry()
+    {
+        // save settings ------------------------------------------------------
+        saveSettings();
+    }
+
+    private:
+
+    void        loadSettings()
+    {
+        m_Config->Read( _("SampleRate"), 
+                        _("44100")       ).ToDouble
+                        ( &m_AudioSampleRate );
+
+        m_Config->Read( _("SampleRateError"), 
+                        _("0.0")           ).ToDouble
+                        ( &m_AudioSampleRateErrorPPM );
+
+        m_Config->Read( _("PappradioXTALError"), 
+                        _("0.0")           ).ToDouble
+                        ( &m_PappradioXTALPPM );
+
+        m_AudioInputDevice.Name  = m_Config->Read( _("AudioInputDeviceName"), 
+                                                   _("") );
+
+        m_AudioOutputDevice.Name = m_Config->Read( _("AudioOutputDeviceName"), 
+                                                   _("") );
+    }
+
+    void        saveSettings()
+    {
+        wxString valueString;
+
+        valueString.Printf( _("%f"), m_AudioSampleRate );
+        m_Config->Write( _("SampleRate"), valueString );
+
+        valueString.Printf( _("%f"), m_AudioSampleRateErrorPPM );
+        m_Config->Write( _("SampleRateError"), valueString ); 
+
+        valueString.Printf( _("%f"), m_PappradioXTALPPM );
+        m_Config->Write( _("PappradioXTALError"), valueString );
+
+        m_Config->Write( _("AudioInputDeviceName"), 
+                         m_AudioInputDevice.Name );
+
+        m_Config->Write( _("AudioOutputDeviceName"), 
+                         m_AudioOutputDevice.Name );
+    }
+
+    // Audio-Devices ----------------------------------------------------------
+    AudioDevice_t                       m_AudioInputDevice;
+    AudioDevice_t                       m_AudioOutputDevice;
+
+    // Audio-Sample-Rate and Sample-Rate-Error in PPM -------------------------
+    double                              m_AudioSampleRate;
+    double                              m_AudioSampleRateErrorPPM;
+
+    // Tuning-Error due to XTAL-Frequency-Deviation in PPM --------------------
+    double                              m_PappradioXTALPPM;
+
+    // Frequency-Settings-Table -----------------------------------------------
+    std::vector<FrequencySettings_t>    m_FrequencySettings;
+
+    // Attenuator-Correction-Values -------------------------------------------
+    double                              m_AttenuatorRealDB[4];
+
+    // some place to store all this -------------------------------------------
+    wxConfig*                           m_Config;
+};
 
 class GlobalConfig
 {
@@ -62,9 +154,14 @@ class GlobalConfig
     void        setSquelchLevel(float level);
     void        setFilter( float bandwidth );
 
+    void        setSampleRate( double frequency ){m_SampleRate = frequency;}
+    double      getSampleRate(){return m_SampleRate;}
+
     private:
 
     // S-Meter-Correction
+
+    double                      m_SampleRate;
 
     // List of Output-Devices
     std::vector <AudioDevice_t> m_AudioOutputDevices;
@@ -79,6 +176,10 @@ class GlobalConfig
     AudioThread*  m_AudioThread;
 
     float                       m_SLevelCorrection;
+
+    wxMutex                     m_ConfigMutex;
+
+    ConfigRegistry              m_Registry;
 };
 
 #endif
