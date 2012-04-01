@@ -6,13 +6,16 @@ class MyApp : public wxApp
 {
     public:
     virtual bool OnInit();
+    virtual int  OnExit();
     Pappradio* m_Pappradio;
+    wxLogWindow* m_LogWindow;
 };
 
 class MyFrame : public wxFrame
 {
     public:
-    MyFrame(const wxString& title, Pappradio* pappradio );
+    MyFrame(const wxString& title, Pappradio* pappradio, wxLogWindow* logwindow );
+   ~MyFrame();
 
     void OnLoFreqChanged( wxCommandEvent& event );
     void OnFreqChanged( wxCommandEvent& event );
@@ -56,6 +59,8 @@ class MyFrame : public wxFrame
     void onButtonPreCustom1 ( wxCommandEvent& event );
     void onButtonPreCustom2 ( wxCommandEvent& event );
     void onButtonPreCustom3 ( wxCommandEvent& event );
+
+    void onClose            ( wxCloseEvent& event );
 
     private:
     wxCustomLCDisplay*  m_LCDisplay;
@@ -111,6 +116,7 @@ class MyFrame : public wxFrame
     wxCustomPushButton* m_PushButtonAGC500;
     wxCustomPushButton* m_PushButtonAGC250;
 
+    wxLogWindow*        m_LogWindow;
     Pappradio*          m_Pappradio;
     AudioThread*        m_AudioThread;
     DECLARE_EVENT_TABLE()
@@ -162,6 +168,7 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_COMMAND(wxID_ANY, wxLOFreqChanged,  MyFrame::OnLoFreqChanged )
     EVT_COMMAND(wxID_ANY, wxFreqChanged,    MyFrame::OnFreqChanged   )
     EVT_COMMAND(wxID_ANY, wxFFTClicked,     MyFrame::onFFTClicked    )
+    EVT_CLOSE  ( MyFrame::onClose                                    )
 
     EVT_BUTTON (BUTTON_CW , MyFrame::onButtonCW  )
     EVT_BUTTON (BUTTON_LSB, MyFrame::onButtonLSB )
@@ -208,8 +215,8 @@ IMPLEMENT_APP(MyApp)
 
 bool MyApp::OnInit()
 {
-	wxLogWindow* logwindow = new wxLogWindow( 0, _("Logging") );
-	logwindow->Show();
+	m_LogWindow = new wxLogWindow( 0, _("Logging") );
+	m_LogWindow->Show();
 
     // We do not want to have only BMPs...
     wxInitAllImageHandlers();
@@ -217,10 +224,10 @@ bool MyApp::OnInit()
     m_Pappradio = new Pappradio;
 
     GlobalConfig* config = GlobalConfig::getInstance();
-    //config->startAudioThread();
-	//wxLogStatus( _("Audiothread started.") );
+    config->startAudioThread();
+	wxLogStatus( _("Audiothread started.") );
 
-    MyFrame *frame = new MyFrame( wxT("Pappradio SDR"), m_Pappradio );
+    MyFrame *frame = new MyFrame( wxT("Pappradio SDR"), m_Pappradio, m_LogWindow );
     frame->Show(true);
 
     enum Pappradio::ERRORS result;
@@ -268,10 +275,17 @@ bool MyApp::OnInit()
     return true;
 }
 
+int MyApp::OnExit()
+{
+    delete m_Pappradio;
+    return( 0 );
+}
+
 #include "wx/mstream.h"
-MyFrame::MyFrame(const wxString& title, Pappradio* pappradio )
+MyFrame::MyFrame(const wxString& title, Pappradio* pappradio, wxLogWindow* logwindow )
   : wxFrame(NULL, wxID_ANY, title),
-  m_Pappradio( pappradio )
+  m_Pappradio( pappradio ),
+  m_LogWindow( logwindow )
 {
     #if defined(__WXGTK__) || defined(__WXMOTIF__)
     {
@@ -451,6 +465,17 @@ MyFrame::MyFrame(const wxString& title, Pappradio* pappradio )
     Layout();
 
     config->setSLevelCorrection( -30.0 );
+}
+
+MyFrame::~MyFrame()
+{
+}
+
+void MyFrame::onClose( wxCloseEvent& WXUNUSED(event) )
+{
+    wxMessageBox( _("onClose") );
+    m_LogWindow->GetFrame()->Destroy();
+    Destroy();
 }
 
 void MyFrame::onButtonCW(wxCommandEvent& WXUNUSED(event))
@@ -929,7 +954,7 @@ void MyFrame::OnLoFreqChanged( wxCommandEvent& WXUNUSED(event) )
     }
 
     // update displayed LO-Frequency
-    m_LCDisplay->setLOFreqDisplay( m_Pappradio->getFrequency() );
+    m_LCDisplay->setLOFreqDisplay( m_Pappradio->getFrequency()*(1.0+5.33/1000000.0) );
 
     // update displayed Tune-Frequency
     m_LCDisplay->setFreqDisplay( m_LCDisplay->getLOFreqDisplay() +
