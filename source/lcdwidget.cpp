@@ -11,6 +11,7 @@ BEGIN_EVENT_TABLE( wxCustomLCDisplay, wxPanel )
     EVT_MOUSEWHEEL  ( wxCustomLCDisplay::OnMouseWheel )
     EVT_TIMER       ( wxID_ANY, wxCustomLCDisplay::onTimer )
     EVT_LEFT_DOWN   ( wxCustomLCDisplay::onClicked )
+	EVT_ERASE_BACKGROUND		( wxCustomLCDisplay::onErase  )
 END_EVENT_TABLE()
 
 // ============================================================================
@@ -97,7 +98,7 @@ wxCustomLCDisplay::wxCustomLCDisplay( wxWindow* parent )
     m_dBMode             = false;
 
     m_Timer = new wxTimer(this, wxID_ANY);
-    m_Timer->Start( 1500 );
+    m_Timer->Start( 100 );
 }
 
 //=============================================================================
@@ -118,6 +119,11 @@ wxCustomLCDisplay::~wxCustomLCDisplay()
     }
 }
 
+
+void wxCustomLCDisplay::onErase( wxEraseEvent& WXUNUSED(event) )
+{
+	// do nothing -> required to prevent flicker under Win32
+}
 
 void wxCustomLCDisplay::onPaint( wxPaintEvent& WXUNUSED(event) )
 {
@@ -609,6 +615,7 @@ void wxCustomLCDisplay::onClicked(wxMouseEvent& event)
 
         // convert into dB according to displayed 90 dB range
         squelchLevel = squelchLevel*90.f-90.f;
+        if( squelchLevel <= -89.0 ) squelchLevel = -300.0;
 
         // compensate for calibration-offset
         squelchLevel -= GlobalConfig::getInstance()->getSLevelCorrection();

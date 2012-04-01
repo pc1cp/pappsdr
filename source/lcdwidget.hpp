@@ -22,6 +22,8 @@ class wxCustomLCDisplay : public wxPanel
    ~wxCustomLCDisplay();
 
     void onPaint    ( wxPaintEvent& event );
+	void onErase	( wxEraseEvent& event );
+
     void paintNow   ();
     void render     ( wxDC& dc );
 
