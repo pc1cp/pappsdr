@@ -23,7 +23,11 @@ SET( SOURCES    main.hpp
                 pushbutton.hpp
                 pushbutton.cpp
                 separator.cpp
-                separator.hpp )
+                separator.hpp
+                configdialog.cpp
+                configdialog.hpp
+				spinctrl.cpp
+				spinctrl.hpp )
 
 # add binary resources ...
 SET(ARTPATH "${CMAKE_CURRENT_SOURCE_DIR}/../artwork")
