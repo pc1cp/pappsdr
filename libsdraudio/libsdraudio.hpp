@@ -168,12 +168,12 @@ class SDRAudio
             switch( m_SDRMode )
             {
                 case SDR_MODE_FM:
-                    // for FM use a fast squelch with a 1/20th of a second
-                    m_SquelchCount = m_SampleRate/20.f;
+                    // for FM use a fast squelch with a 1/100th of a second
+                    m_SquelchCount = m_SampleRate/100.f;
                     break;
                 default:
                     // set delay-counter to 1/4th of a second for all other modes
-                    m_SquelchCount = m_SampleRate/1.f;
+                    m_SquelchCount = m_SampleRate/4.f;
                     break;
             }
         }

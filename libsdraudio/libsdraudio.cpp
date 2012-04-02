@@ -45,21 +45,27 @@ SDRAudio::SDRAudio( float sampleRate )
     m_FirFilter0 = new FirFilter( m_SampleRate,
                                   m_FilterBandwidth,
                                   0,
-                                  4096 );
+                                  2*8192 );
 
     m_FirFilter1 = new FirFilter( m_SampleRate,
                                   m_FilterBandwidth,
                                   0,
-                                  4096 );
+                                  2*8192 );
 
     m_AutomaticGainControl = new AutomaticGainControl( m_SampleRate );
 }
 
 void SDRAudio::updateSignalLevel( ComplexSample& input )
 {
-    if( m_SignalLevel < fabs(input) )
+    static double lp;
+    double a = exp( -2.0*M_PI*1.0/m_SampleRate );
+    double b = 1.0 - a;
+
+    lp = a * lp + b * (double)fabs(input);
+
+    if( m_SignalLevel < (float)lp )
     {
-        m_SignalLevel = fabs(input);
+        m_SignalLevel = (float)lp;
     }
 }
 
@@ -92,7 +98,7 @@ bool SDRAudio::update( ComplexSample& input, ComplexSample& output )
         case SDR_MODE_DSB:
         case SDR_MODE_CW:
         {
-            //static std::fstream debugfile("ssb-out.raw", std::ios::binary|std::ios::out );
+            static std::fstream debugfile("ssb-out.raw", std::ios::binary|std::ios::out );
 
             output = input * ComplexSample( (float)cos(phase0),
                                             (float)sin(phase0) );
@@ -101,12 +107,12 @@ bool SDRAudio::update( ComplexSample& input, ComplexSample& output )
             output  = m_AutomaticGainControl->update( output );
             output *= ComplexSample( (float)cos(phase1),
                                      (float)sin(phase1) );
-            //float sample = output.getI();
-            //output = ComplexSample( sample, sample );
+            float sample = output.getI();
+            output = ComplexSample( sample, sample );
             updateSquelch( output );
             //output = m_FirFilter1->update( output );
 
-            //debugfile.write((char*)&sample, sizeof(sample) );
+            debugfile.write((char*)&output, sizeof(output) );
             return( true );
 //            break;
         }
@@ -118,12 +124,13 @@ bool SDRAudio::update( ComplexSample& input, ComplexSample& output )
             output = m_FirFilter0->update( output );
             updateSignalLevel(output);
 
+            output = m_AutomaticGainControl->update( output );
+            output *= 1.4142;
+
             float temp = fabs(output);
             output = m_FirFilter1
                      ->update( ComplexSample( temp, temp ) );
 
-            output = m_AutomaticGainControl->update( output );
-            output *= 1.4142;
 
             updateSquelch( output );
             return( true );
@@ -136,10 +143,9 @@ bool SDRAudio::update( ComplexSample& input, ComplexSample& output )
             static ComplexSample last0;
             static ComplexSample last1;
 
+
             output = m_FirFilter0->update( output );
             updateSignalLevel(output);
-
-            output /= fabs(output);
 
             float value0 = atan2( output.getI(), output.getQ() )/M_PI-
                            atan2( last0. getI(), last0 .getQ() )/M_PI;
@@ -232,15 +238,28 @@ void SDRAudio::setFilter( float bandwidth )
     }
     else
     if( m_SDRMode == SDR_MODE_AM  ||
-        m_SDRMode == SDR_MODE_FM  ||
         m_SDRMode == SDR_MODE_DSB )
+    {
+        float f0 = bandwidth;
+        float f1 = 90.f;
+
+        if( f0 > fmax ) f0 = fmax;
+
+        m_FirFilter0->setBandwidth( f0     );
+        m_FirFilter1->setBandwidth( f0, f1 );
+        m_FilterFrequency = 0.f;
+        m_FilterToneShift = 0.f;
+        m_FilterBandwidth = f0;
+    }
+    else
+    if( m_SDRMode == SDR_MODE_FM )
     {
         float f0 = bandwidth;
         float f1 = 50.f;
 
         if( f0 > fmax ) f0 = fmax;
 
-        m_FirFilter0->setBandwidth( f0*2.f );
+        m_FirFilter0->setBandwidth( f0+2000 );
         m_FirFilter1->setBandwidth( f0, f1 );
         m_FilterFrequency = 0.f;
         m_FilterToneShift = 0.f;
