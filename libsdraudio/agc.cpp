@@ -30,11 +30,18 @@ AutomaticGainControl::AutomaticGainControl()
 #include <iostream>
 void AutomaticGainControl::setTime( double time )
 {
-    double nrOfSamplesUp   = (double)m_SampleRate * time;
+    std::cerr << "AGC-Time:" << time << std::endl;
+    std::cerr << "AGC-SampleRate:" << m_SampleRate << std::endl;
 
-    // +12 dB in specified Time
-    m_GainUp   = pow( 4.00, 1.0/nrOfSamplesUp   );
-    m_GainDown = pow( 4.00, 1.0/nrOfSamplesUp   );
+    double nrOfSamplesUp   = (double)m_SampleRate * time;
+    std::cerr << "AGC-Samples:" << nrOfSamplesUp << std::endl;
+
+    // +6/-24 dB in specified Time
+    m_GainUp   =     pow( 2.00, 1.0/nrOfSamplesUp   );
+    m_GainDown = 1.0/pow( 8.00, 1.0/nrOfSamplesUp   );
+
+    std::cerr << "AGC-GainUp...:" << m_GainUp << std::endl;
+    std::cerr << "AGC-GainDown.:" << m_GainUp << std::endl;
 }
 
 ComplexSample AutomaticGainControl::update( ComplexSample& input )
