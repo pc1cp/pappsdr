@@ -42,11 +42,11 @@ GlobalConfig::GlobalConfig()
         {
             DeviceInfo = Pa_GetDeviceInfo( i );
 			wxLogStatus( _("Device-Index: %i"), i );
-			wxLogStatus( _("Device-Name: %s"), wxString::From8BitData(DeviceInfo->name) );
+			wxLogStatus( _("Device-Name: %s"), DeviceInfo->name );
 			wxLogStatus( _("Device-Max-Input-Channels: %i"), DeviceInfo->maxInputChannels );
 			wxLogStatus( _("Device-Max-Output-Channels: %i"), DeviceInfo->maxOutputChannels );
 			const PaHostApiInfo* HostApiInfo = Pa_GetHostApiInfo( DeviceInfo->hostApi );
-			wxLogStatus( _("Device-Host-API: %s"), wxString::From8BitData(HostApiInfo->name) );												   
+			wxLogStatus( _("Device-Host-API: %s"), HostApiInfo->name );
 			wxLogStatus( _(" ") );
 		}
 
@@ -57,7 +57,7 @@ GlobalConfig::GlobalConfig()
 			const PaHostApiInfo* HostApiInfo = Pa_GetHostApiInfo( DeviceInfo->hostApi );
 
 #ifndef _WIN32
-            if( DeviceInfo->maxOutputChannels >= 2 )
+            if( DeviceInfo->maxOutputChannels >= 2 &&
 				HostApiInfo->type == paALSA )
             {
                 // add audio-device to list of usable audio-devices.
@@ -116,7 +116,7 @@ GlobalConfig::GlobalConfig()
 			const PaHostApiInfo* HostApiInfo = Pa_GetHostApiInfo( DeviceInfo->hostApi );
 
 #ifndef _WIN32
-            if( DeviceInfo->maxInputChannels >= 2 )
+            if( DeviceInfo->maxInputChannels >= 2 &&
 				HostApiInfo->type == paALSA )
             {
                 // add audio-device to list of usable audio-devices.
@@ -169,20 +169,6 @@ GlobalConfig::GlobalConfig()
         }
     }
 
-    wxLogStatus ( _("Found this list of usable *INPUT* Audio-Devices:" ) );
-    for( unsigned int i=0; i<m_AudioInputDevices.size(); i++)
-    {
-        wxLogStatus( _("Index: %i"), m_AudioInputDevices[i].NumericID );
-        wxLogStatus( _("Devicename: %s"), m_AudioInputDevices[i].Name );
-    }
-
-    std::cerr << "\n\nFound this list of usable *OUTPUT* Audio-Devices:\n\n";
-    for( unsigned int i=0; i<m_AudioOutputDevices.size(); i++)
-    {
-        wxLogStatus( _("Index: %i"), m_AudioOutputDevices[i].NumericID );
-        wxLogStatus( _("Devicename: %s"), m_AudioOutputDevices[i].Name );
-    }
-
     // now try to find out which audio-device was stored the last time
     m_OutputDeviceIndex =  0;
     m_InputDeviceIndex  =  0;
@@ -195,7 +181,6 @@ GlobalConfig::GlobalConfig()
         if( lastInputDevice == m_AudioInputDevices[i].Name )
         {
             wxLogStatus( _("Last-In-Index: %i"), m_AudioInputDevices[i].NumericID );
-            wxLogStatus( _("Last-In-Devicename: %s"), m_AudioInputDevices[i].Name );
             m_InputDeviceIndex = i;
             break;
         }
@@ -207,7 +192,6 @@ GlobalConfig::GlobalConfig()
         if( lastOutputDevice == m_AudioOutputDevices[i].Name )
         {
             wxLogStatus( _("Last-Out-Index: %i"), m_AudioOutputDevices[i].NumericID );
-            wxLogStatus( _("Last-Out-Devicename: %s"), m_AudioOutputDevices[i].Name );
             m_OutputDeviceIndex = i;
             break;
         }

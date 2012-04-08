@@ -107,7 +107,6 @@ void wxCustomSpinCtrl::onSpinUp( wxSpinEvent& WXUNUSED(event) )
 
     wxSpinEvent event;
     event.SetId( m_ID );
-    event.SetEventType( wxEVT_SPIN );
     m_Parent->GetEventHandler()->AddPendingEvent( event );
 }
 
@@ -123,7 +122,6 @@ void wxCustomSpinCtrl::onSpinDown( wxSpinEvent& WXUNUSED(event) )
 
     wxSpinEvent event;
     event.SetId( m_ID );
-    event.SetEventType( wxEVT_SPIN );
     m_Parent->GetEventHandler()->AddPendingEvent( event );
 }
 
@@ -136,7 +134,6 @@ void wxCustomSpinCtrl::onTextEnter( wxCommandEvent& WXUNUSED( event ) )
 
         wxSpinEvent event;
         event.SetId( m_ID );
-        event.SetEventType( wxEVT_SPIN );
         m_Parent->GetEventHandler()->AddPendingEvent( event );
     }
     printValue( m_Value );

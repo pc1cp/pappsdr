@@ -30,7 +30,7 @@ class ConfigRegistry
     public:
     ConfigRegistry()
     {
-        m_Config = new wxConfig("PappSDR");
+        m_Config = new wxConfig(_("PappSDR"));
 
         // load settings ------------------------------------------------------
         loadSettings();
@@ -58,38 +58,38 @@ class ConfigRegistry
 
     void        loadSettings()
     {
-        m_Config->Read( _("SampleRate"), 
+        m_Config->Read( _("SampleRate"),
                         _("44100")       ).ToDouble
                         ( &m_AudioSampleRate );
 
-        m_Config->Read( _("SampleRateError"), 
+        m_Config->Read( _("SampleRateError"),
                         _("0.0")           ).ToDouble
                         ( &m_AudioSampleRateErrorPPM );
 
-        m_Config->Read( _("PappradioXTALError"), 
+        m_Config->Read( _("PappradioXTALError"),
                         _("0.0")           ).ToDouble
                         ( &m_PappradioXTALPPM );
 
-        m_Config->Read( _("PappradioAtt00dB"), 
+        m_Config->Read( _("PappradioAtt00dB"),
                         _("0.0")           ).ToDouble
                         ( &m_AttenuatorRealDB[0] );
 
-        m_Config->Read( _("PappradioAtt10dB"), 
+        m_Config->Read( _("PappradioAtt10dB"),
                         _("-10.0")           ).ToDouble
                         ( &m_AttenuatorRealDB[1] );
 
-        m_Config->Read( _("PappradioAtt20dB"), 
+        m_Config->Read( _("PappradioAtt20dB"),
                         _("-20.0")           ).ToDouble
                         ( &m_AttenuatorRealDB[2] );
 
-        m_Config->Read( _("PappradioAtt30dB"), 
+        m_Config->Read( _("PappradioAtt30dB"),
                         _("-30.0")           ).ToDouble
                         ( &m_AttenuatorRealDB[3] );
 
-        m_AudioInputDevice.Name  = m_Config->Read( _("AudioInputDeviceName"), 
+        m_AudioInputDevice.Name  = m_Config->Read( _("AudioInputDeviceName"),
                                                    _("") );
 
-        m_AudioOutputDevice.Name = m_Config->Read( _("AudioOutputDeviceName"), 
+        m_AudioOutputDevice.Name = m_Config->Read( _("AudioOutputDeviceName"),
                                                    _("") );
     }
 
@@ -101,7 +101,7 @@ class ConfigRegistry
         m_Config->Write( _("SampleRate"), valueString );
 
         valueString.Printf( _("%f"), m_AudioSampleRateErrorPPM );
-        m_Config->Write( _("SampleRateError"), valueString ); 
+        m_Config->Write( _("SampleRateError"), valueString );
 
         valueString.Printf( _("%f"), m_PappradioXTALPPM );
         m_Config->Write( _("PappradioXTALError"), valueString );
@@ -118,10 +118,10 @@ class ConfigRegistry
         valueString.Printf( _("%f"), m_AttenuatorRealDB[3] );
         m_Config->Write( _("PappradioAtt30dB"), valueString );
 
-        m_Config->Write( _("AudioInputDeviceName"), 
+        m_Config->Write( _("AudioInputDeviceName"),
                          m_AudioInputDevice.Name );
 
-        m_Config->Write( _("AudioOutputDeviceName"), 
+        m_Config->Write( _("AudioOutputDeviceName"),
                          m_AudioOutputDevice.Name );
     }
 
