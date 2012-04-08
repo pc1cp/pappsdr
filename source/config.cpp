@@ -179,13 +179,39 @@ GlobalConfig::GlobalConfig()
     std::cerr << "\n\nFound this list of usable *OUTPUT* Audio-Devices:\n\n";
     for( unsigned int i=0; i<m_AudioOutputDevices.size(); i++)
     {
-        std::cerr << "Index: "        << m_AudioOutputDevices[i].NumericID
-                  << "\tDevicename: " << m_AudioOutputDevices[i].Name.mb_str()
-                  << "\n";
+        wxLogStatus( _("Index: %i"), m_AudioOutputDevices[i].NumericID );
+        wxLogStatus( _("Devicename: %s"), m_AudioOutputDevices[i].Name );
     }
 
+    // now try to find out which audio-device was stored the last time
     m_OutputDeviceIndex =  0;
     m_InputDeviceIndex  =  0;
+    wxString lastInputDevice = m_Registry.getInputDevice();
+    wxString lastOutputDevice = m_Registry.getOutputDevice();
+
+    // and if it's in the current device-list, then choose it again
+    for( unsigned int i=0; i<m_AudioInputDevices.size(); i++)
+    {
+        if( lastInputDevice == m_AudioInputDevices[i].Name )
+        {
+            wxLogStatus( _("Last-In-Index: %i"), m_AudioInputDevices[i].NumericID );
+            wxLogStatus( _("Last-In-Devicename: %s"), m_AudioInputDevices[i].Name );
+            m_InputDeviceIndex = i;
+            break;
+        }
+    }
+
+    // and if it's in the current device-list, then choose it again
+    for( unsigned int i=0; i<m_AudioOutputDevices.size(); i++)
+    {
+        if( lastOutputDevice == m_AudioOutputDevices[i].Name )
+        {
+            wxLogStatus( _("Last-Out-Index: %i"), m_AudioOutputDevices[i].NumericID );
+            wxLogStatus( _("Last-Out-Devicename: %s"), m_AudioOutputDevices[i].Name );
+            m_OutputDeviceIndex = i;
+            break;
+        }
+    }
 }
 
 GlobalConfig::~GlobalConfig()
@@ -305,12 +331,14 @@ double GlobalConfig::getProcessingSampleRate()
 void GlobalConfig::setOutputDevice(int index)
 {
     std::cerr << "Output-Device-Index: " << index << "\n";
+    m_Registry.setOutputDevice( m_AudioOutputDevices[index].Name );
     m_OutputDeviceIndex=index;
 }
 
 void GlobalConfig::setInputDevice(int index)
 {
     std::cerr << "Input-Device-Index: " << index << "\n";
+    m_Registry.setInputDevice( m_AudioInputDevices[index].Name );
     m_InputDeviceIndex=index;
 }
 

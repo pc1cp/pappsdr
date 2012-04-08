@@ -1,7 +1,13 @@
 #ifndef __AUDIOTHREAD_HPP__
 #define __AUDIOTHREAD_HPP__
 
-#include "portaudio.h"
+#ifndef _WIN32
+	#include "portaudio.h"
+#else
+	#define PA_USE_WDMKS 1
+	#include "pa_win_wdmks.h"
+#endif
+
 //#include "sample.hpp"
 #include "complexsample.hpp"
 #include "audioqueue.hpp"
@@ -37,8 +43,7 @@ class AudioThread: public wxThread
     float       getSquelchLevel ();
     void        setSquelchLevel (float level);
 
-    double  getInputSoundCardSampleRate();
-    double  getProcessingSampleRate();
+    double  getSampleRate();
 
     private:
 
@@ -56,6 +61,7 @@ class AudioThread: public wxThread
     double  GetSampleRate       (int PortaudioDeviceIndex );
 
     SDRAudio*           m_SDRAudio;
+	//wxMutex				m_SDRAudioMutex;
 
     double              m_Latency;
     int                 m_FramesPerBuffer;
@@ -79,6 +85,8 @@ class AudioThread: public wxThread
 
     wxMutex             m_ReconfigureLock;
     bool                m_ReconfigureFlag;
+
+    wxMutex             m_ThreadMutex;
 
     static int PaCallback( const void *input,
                                  void *output,

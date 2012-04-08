@@ -46,6 +46,7 @@ FirFilter::FirFilter( double  sampleRate, double f0, double f1, int length )
     m_Out1            = new kiss_fft_cpx[ m_FilterLength ];
     m_Out2            = new kiss_fft_cpx[ m_FilterLength ];
     m_Out3            = new kiss_fft_cpx[ m_FilterLength ];
+    m_Mean            = new kiss_fft_cpx[ m_FilterLength ];
 
     // clear buffers
     for( int n=0; n<m_FilterLength; n++ )
@@ -62,6 +63,8 @@ FirFilter::FirFilter( double  sampleRate, double f0, double f1, int length )
         m_Out2[n].i = 0;
         m_Out3[n].r = 0;
         m_Out3[n].i = 0;
+        m_Mean[n].r = 0;
+        m_Mean[n].i = 0;
     }
 
     m_KissCFGforeward = kiss_fft_alloc( m_FilterLength, 0, 0, 0 );
@@ -73,6 +76,9 @@ FirFilter::FirFilter( double  sampleRate, double f0, double f1, int length )
     // setup array-pointers
     m_Pos0 = 0;
     m_Pos1 = m_FilterLength/2;
+
+    // clear DeHumm-Filter-Flag
+    m_DeHummSet = false;
 }
 
 FirFilter::~FirFilter()
@@ -87,6 +93,13 @@ FirFilter::~FirFilter()
     delete [] m_Out1;
     delete [] m_Out2;
     delete [] m_Out3;
+
+    delete [] m_Mean;
+}
+
+void FirFilter::setDeHumm()
+{
+    m_DeHummSet = true;
 }
 
 void FirFilter::setBandwidth( double fMin, double fMax )
@@ -139,7 +152,27 @@ ComplexSample FirFilter::update( ComplexSample input )
         {
             m_Out0[n].r *= m_CoefficientsFFT[n].r;
             m_Out0[n].i *= m_CoefficientsFFT[n].i;
+#if 0
+            if( m_DeHummSet )
+            {
+                float amplitude = sqrtf( m_Out0[n].r * m_Out0[n].r + m_Out0[n].i * m_Out0[n].i );
+                m_Mean[n].r = m_Mean[n].r * 0.999 + 0.001 * amplitude;
+                m_Mean[n].i = atan2f( m_Out0[n].r , m_Out0[n].i );
+
+                float factor = amplitude / m_Mean[n].r;
+                if( factor < 1.0 ) factor = 1.0/factor;
+                factor -= 1.0;
+                factor = factor > 1.0? 1:factor;
+
+                amplitude *= factor;
+                amplitude = amplitude < 0 ? 0:amplitude;
+
+            //    m_Out0[n].r = amplitude*sinf(m_Mean[n].i);
+            //    m_Out0[n].i = amplitude*cosf(m_Mean[n].i);
+            //}
+#endif
         }
+        
         kiss_fft( m_KissCFGbackward, m_Out0, m_Out1  );
     }
 
@@ -150,6 +183,26 @@ ComplexSample FirFilter::update( ComplexSample input )
         {
             m_Out2[n].r *= m_CoefficientsFFT[n].r;
             m_Out2[n].i *= m_CoefficientsFFT[n].i;
+
+#if 0
+            if( m_DeHummSet )
+            {
+                float amplitude = sqrtf( m_Out2[n].r * m_Out2[n].r + m_Out2[n].i * m_Out2[n].i );
+                m_Mean[n].r = m_Mean[n].r * 0.999 + 0.001 * amplitude;
+                m_Mean[n].i = atan2f( m_Out2[n].r , m_Out2[n].i );
+
+                float factor = amplitude / m_Mean[n].r;
+                if( factor < 1.0 ) factor = 1.0/factor;
+                factor -= 1.0;
+                factor = factor > 1.0? 1:factor;
+
+                amplitude *= factor;
+                amplitude = amplitude < 0 ? 0:amplitude;
+
+                m_Out2[n].r = amplitude*sinf(m_Mean[n].i);
+                m_Out2[n].i = amplitude*cosf(m_Mean[n].i);
+            }
+#endif
         }
         kiss_fft( m_KissCFGbackward, m_Out2, m_Out3  );
     }

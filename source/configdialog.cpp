@@ -111,24 +111,63 @@ wxPanel* wxCustomConfigDialog::createAudioIOPage( wxBookCtrlBase* parent )
         new wxStaticBoxSizer( wxVERTICAL, page, _("Samplerate") );
 
 	wxChoice* inputDeviceChoice = new wxChoice( page, ID_CONF_INPUT_DEVICE, wxDefaultPosition, wxDefaultSize, inputDeviceChoices );
-    inputDeviceChoice->SetSelection( 0 );
+    inputDeviceChoice->SetSelection( Config->getInputDevice() );
 
 	wxChoice* outputDeviceChoice = new wxChoice( page, ID_CONF_OUTPUT_DEVICE, wxDefaultPosition, wxDefaultSize, outputDeviceChoices );
-    outputDeviceChoice->SetSelection( 0 );
+    outputDeviceChoice->SetSelection( Config->getOutputDevice() );
 
 	wxArrayString samplerateChoices;
 	samplerateChoices.Add( _("44100 Samples/Second") );
 	samplerateChoices.Add( _("48000 Samples/Second") );
 	samplerateChoices.Add( _("88200 Samples/Second") );
-	samplerateChoices.Add( _("96100 Samples/Second") );
+	samplerateChoices.Add( _("96000 Samples/Second") );
 	samplerateChoices.Add( _("176400 Samples/Second") );
 	samplerateChoices.Add( _("192000 Samples/Second") );
 	
 	m_SampleRateChoice = new wxChoice  ( page, ID_CONF_SAMPLERATE, wxDefaultPosition, wxDefaultSize, samplerateChoices );
-    m_SampleRateChoice->SetSelection( 0 );
+    m_SampleRateSpin = new wxCustomSpinCtrl( page, ID_CONF_SAMPLERATE_ENTER, 0, 200000, 0, 1 );
+    m_SampleRatePPMSpin = new wxCustomSpinCtrl( page, ID_CONF_SAMPLERATE_PPM, -5000, +5000, 0, 1 );
 
-    m_SampleRateSpin = new wxCustomSpinCtrl( page, ID_CONF_SAMPLERATE_ENTER, 0, 192000, 0, 1 );
-    m_SampleRatePPMSpin = new wxCustomSpinCtrl( page, wxID_ANY, -5000, +5000, 0, 1 );
+    double sampleRate = Config->getSampleRate();
+    double ppm        = Config->getSampleRatePPM();
+
+    m_SampleRateSpin   ->setValue(sampleRate*(1.0+ppm/1.0E6));
+    m_SampleRatePPMSpin->setValue(ppm);
+
+    switch( (int)sampleRate )
+    {
+        default:
+        case 44100:
+        {
+            m_SampleRateChoice->SetSelection( 0 );
+            break;
+        }
+        case 48000:
+        {
+            m_SampleRateChoice->SetSelection( 1 );
+            break;
+        }
+        case 88200:
+        {
+            m_SampleRateChoice->SetSelection( 2 );
+            break;
+        }
+        case 96000:
+        {
+            m_SampleRateChoice->SetSelection( 3 );
+            break;
+        }
+        case 176400:
+        {
+            m_SampleRateChoice->SetSelection( 4 );
+            break;
+        }
+        case 192000:
+        {
+            m_SampleRateChoice->SetSelection( 5 );
+            break;
+        }
+    }
 
     wxBoxSizer* sampleRateCorrectionSizer = new wxBoxSizer( wxHORIZONTAL );
 
@@ -147,7 +186,8 @@ wxPanel* wxCustomConfigDialog::createAudioIOPage( wxBookCtrlBase* parent )
 
     wxStaticText* hintText = new wxStaticText( page, -1, 
         _( "When choosing audio-devices, your should be aware that it is "
-           "absolutely required to choose devices from the same host-API. "
+           "absolutely required to choose devices from the same hardware-"
+           "device and from the same host-API. "
            "If you don't, expect the audio-IO to close immediately after "
            "it has been started. If this happens it can be restarted "
            "after choosing other settings.") );
@@ -214,6 +254,8 @@ void wxCustomConfigDialog::onSampleRate( wxCommandEvent& event )
 
 void wxCustomConfigDialog::onSampleRateReal( wxSpinEvent& WXUNUSED(event) )
 {
+    GlobalConfig* config=GlobalConfig::getInstance();
+
     int sampleRateIndex = m_SampleRateChoice->GetSelection();
 
     double sampleRate = 0;
@@ -244,6 +286,42 @@ void wxCustomConfigDialog::onSampleRateReal( wxSpinEvent& WXUNUSED(event) )
    double ppm = ((sampleRateReal / sampleRate )-1.0)*1000000.0;
 
    m_SampleRatePPMSpin->setValue( ppm );
+   config->setSampleRatePPM( ppm );
+}
+
+void wxCustomConfigDialog::onSampleRatePPM( wxSpinEvent& WXUNUSED(event) )
+{
+    GlobalConfig* config=GlobalConfig::getInstance();
+
+    int sampleRateIndex = m_SampleRateChoice->GetSelection();
+
+    double sampleRate = 0;
+    switch( sampleRateIndex )
+    {
+        case 0:
+            sampleRate = 44100.0;
+            break;
+        case 1:    
+            sampleRate = 48000.0;
+            break;
+        case 2:    
+            sampleRate = 88200.0;
+            break;
+        case 3:    
+            sampleRate = 96000.0;
+            break;
+        case 4:    
+            sampleRate = 176400.0;
+            break;
+        case 5:
+        default:
+            sampleRate = 192000.0;
+            break;
+    }
+
+    double ppm = m_SampleRatePPMSpin->getValue();
+    double sampleRateReal = sampleRate*(1.0+ppm/1.0E6);
+    m_SampleRateSpin->setValue( sampleRateReal );
 }
 
 BEGIN_EVENT_TABLE(wxCustomConfigDialog, wxDialog)
@@ -251,6 +329,7 @@ BEGIN_EVENT_TABLE(wxCustomConfigDialog, wxDialog)
     EVT_CHOICE(ID_CONF_OUTPUT_DEVICE,    wxCustomConfigDialog::onOutputDevice   )
     EVT_CHOICE(ID_CONF_SAMPLERATE,       wxCustomConfigDialog::onSampleRate     )
     EVT_SPIN  (ID_CONF_SAMPLERATE_ENTER, wxCustomConfigDialog::onSampleRateReal )
+    EVT_SPIN  (ID_CONF_SAMPLERATE_PPM  , wxCustomConfigDialog::onSampleRatePPM  )
 END_EVENT_TABLE()
 
 

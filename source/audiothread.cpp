@@ -6,16 +6,18 @@
 
 
 double  AudioThread::s_TestSampleRates[]    = { 192000.0,
-                                                //176400.0,
-                                                 //96000.0,
-                                                 //88200.0,
+                                                176400.0,
+                                                 96000.0,
+                                                 88200.0,
                                                  48000.0,
                                                  44100.0 };
 int     AudioThread::s_NrOfTestSampleRates  = 1;
 
 AudioThread::AudioThread()
 {
+   	wxMutexLocker lock( m_ThreadMutex );
 	wxLogStatus( _("AudioThread::AudioThread();") );
+
     m_SDRAudio = 0;
 
     m_ReconfigureFlag = false;
@@ -42,6 +44,7 @@ AudioThread::AudioThread()
 
 void* AudioThread::Entry()
 {
+	wxLogStatus( _("AudioThread::Entry();") );
     bool done = false;
 
     m_PaStreamIsActive = false;
@@ -74,7 +77,7 @@ void* AudioThread::Entry()
             }
             case STATE_ERROR:
             {
-                // close all active streams ...
+				// close all active streams ...
                 if( m_PaStreamIsActive )
                 {
                     Pa_CloseStream( m_PaStream );
@@ -148,7 +151,7 @@ void* AudioThread::Entry()
                 }
             }
         }
-        Sleep( 500 ); // wait for 500 ms
+        Sleep( 2500 ); // wait for 2500 ms
     }
 
     // all finished here...
@@ -165,6 +168,7 @@ void    AudioThread::Reconfigure()
 
 void    AudioThread::Configure()
 {
+	wxLogStatus( _("AudioThread::Configure();") );
     GlobalConfig* config = GlobalConfig::getInstance();
 
     // Try to configure Audio-Hardware
@@ -180,7 +184,11 @@ void    AudioThread::Configure()
     int PortaudioDeviceIndexOut = config->getOutputDevice_PA();
     int PortaudioDeviceIndexIn  = config->getInputDevice_PA ();
 
-    m_SampleRate = GetSampleRate( PortaudioDeviceIndexOut );
+    m_SampleRate = config->getSampleRate();
+
+	wxLogStatus( _("Input-Device = %i"), PortaudioDeviceIndexIn );
+	wxLogStatus( _("Output-Device = %i"), PortaudioDeviceIndexOut );
+	wxLogStatus( _("Sample-Rate = %f"), m_SampleRate );
 
     // if we got a valid result, then open the output-device
     if( m_SampleRate > 0 and everythingIsOk )
@@ -193,7 +201,7 @@ void    AudioThread::Configure()
         memset( &m_PaParametersOut, 0, sizeof( m_PaParametersOut ) );
 
         double inputLatency  = Pa_GetDeviceInfo( PortaudioDeviceIndexOut )
-                               ->defaultHighInputLatency;
+                               ->defaultLowInputLatency;
         double outputLatency = inputLatency;
 
         std::cerr << "default-Latency-In : " <<  inputLatency*m_SampleRate << "\n";
@@ -229,6 +237,7 @@ void    AudioThread::Configure()
             std::cerr << "*** \n";
             std::cerr << "*** " << Pa_GetErrorText(err) << "\n";
             std::cerr << "*** \n\n";
+			wxLogStatus( _("Error opening AudioDevice") );
             everythingIsOk = false;
         }
         else
@@ -247,6 +256,8 @@ void    AudioThread::Configure()
     if( everythingIsOk )
     {
         // Yessss.... we're open, now... ;-)
+      	wxMutexLocker lock( m_ThreadMutex );
+
         m_AudioState = STATE_OPEN;
         std::cerr << "Sample-Rate  = " << m_SampleRate << "\n";
 
@@ -298,6 +309,7 @@ double  AudioThread::GetSampleRate( int PortaudioDeviceIndex )
 
 void AudioThread::setTune( float frequency )
 {
+	wxMutexLocker lock( m_ThreadMutex );
     if( m_SDRAudio )
     {
         m_SDRAudio->setTune( frequency );
@@ -306,26 +318,20 @@ void AudioThread::setTune( float frequency )
 
 AudioQueue* AudioThread::getFFTQueueRF()
 {
+	wxMutexLocker lock( m_ThreadMutex );
     return( &m_InputQueue );
 }
 
 AudioQueue* AudioThread::getFFTQueueAF()
 {
+	wxMutexLocker lock( m_ThreadMutex );
     return( &m_AudioFFTQueue );
 }
 
-double AudioThread::getInputSoundCardSampleRate()
+double AudioThread::getSampleRate()
 {
+	wxMutexLocker lock( m_ThreadMutex );
     return( m_SampleRate );
-}
-
-double AudioThread::getProcessingSampleRate()
-{
-    if( m_SDRAudio )
-    {
-        m_SDRAudio->getSampleRate();
-    }
-    return( 0 );
 }
 
 #include <cstdlib>
@@ -371,7 +377,7 @@ int AudioThread::PaCallback( const void * iDataPtr,
     double coreRate = _this_->m_SDRAudio->getSampleRate();
     double inputRate = _this_->m_SDRAudio->getSampleRate();
 
-    int ratio = inputRate/coreRate;
+    int ratio = inputRate/6000.0;// inputRate/coreRate;
 
     _this_->m_AudioFFTQueue.lock();
     for( unsigned long n=0; n<frames; ++n )
@@ -446,16 +452,25 @@ int AudioThread::PaCallback( const void * iDataPtr,
 
 void AudioThread::setFilter( float bandwidth )
 {
-    m_SDRAudio->setFilter( bandwidth );
+	wxMutexLocker lock( m_ThreadMutex );
+    if( m_SDRAudio )
+    {
+        m_SDRAudio->setFilter( bandwidth );
+    }
 }
 
 void AudioThread::setMode( SDRAudio::SDR_MODE mode )
 {
-    m_SDRAudio->setMode( mode );
+	wxMutexLocker lock( m_ThreadMutex );
+    if( m_SDRAudio )
+    {
+        m_SDRAudio->setMode( mode );
+    }
 }
 
 float AudioThread::getSignalLevel()
 {
+	wxMutexLocker lock( m_ThreadMutex );
     if( m_SDRAudio )
     {
         return( m_SDRAudio->getSignalLevel() );
@@ -466,6 +481,7 @@ float AudioThread::getSignalLevel()
 
 float AudioThread::getSquelchLevel()
 {
+	wxMutexLocker lock( m_ThreadMutex );
     if( m_SDRAudio )
     {
         return( m_SDRAudio->getSquelchLevel() );
@@ -476,6 +492,7 @@ float AudioThread::getSquelchLevel()
 
 void AudioThread::setSquelchLevel( float level )
 {
+	wxMutexLocker lock( m_ThreadMutex );
     if( m_SDRAudio )
     {
         m_SDRAudio->setSquelchLevel( level );
@@ -484,8 +501,10 @@ void AudioThread::setSquelchLevel( float level )
 
 void AudioThread::setAGCTime( double upTime, double downTime )
 {
+	wxMutexLocker lock( m_ThreadMutex );
     if( m_SDRAudio )
     {
         m_SDRAudio->setAGCTime( upTime, downTime  );
+        wxLogStatus( _("AGC-Uptime = %f"), upTime );
     }
 }

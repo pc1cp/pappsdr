@@ -42,6 +42,18 @@ class ConfigRegistry
         saveSettings();
     }
 
+    void   setSampleRate( double value ){ m_AudioSampleRate = value;    }
+    double getSampleRate( )             { return( m_AudioSampleRate );  }
+
+    void   setSampleRatePPM( double value ){ m_AudioSampleRateErrorPPM = value; }
+    double getSampleRatePPM( )             { return( m_AudioSampleRateErrorPPM ); }
+
+    void   setInputDevice( wxString deviceName ) { m_AudioInputDevice.Name = deviceName; }
+    wxString getInputDevice( ) { return m_AudioInputDevice.Name; }
+
+    void   setOutputDevice( wxString deviceName ) { m_AudioOutputDevice.Name = deviceName; }
+    wxString getOutputDevice( ) { return m_AudioOutputDevice.Name; }
+
     private:
 
     void        loadSettings()
@@ -57,6 +69,22 @@ class ConfigRegistry
         m_Config->Read( _("PappradioXTALError"), 
                         _("0.0")           ).ToDouble
                         ( &m_PappradioXTALPPM );
+
+        m_Config->Read( _("PappradioAtt00dB"), 
+                        _("0.0")           ).ToDouble
+                        ( &m_AttenuatorRealDB[0] );
+
+        m_Config->Read( _("PappradioAtt10dB"), 
+                        _("-10.0")           ).ToDouble
+                        ( &m_AttenuatorRealDB[1] );
+
+        m_Config->Read( _("PappradioAtt20dB"), 
+                        _("-20.0")           ).ToDouble
+                        ( &m_AttenuatorRealDB[2] );
+
+        m_Config->Read( _("PappradioAtt30dB"), 
+                        _("-30.0")           ).ToDouble
+                        ( &m_AttenuatorRealDB[3] );
 
         m_AudioInputDevice.Name  = m_Config->Read( _("AudioInputDeviceName"), 
                                                    _("") );
@@ -77,6 +105,18 @@ class ConfigRegistry
 
         valueString.Printf( _("%f"), m_PappradioXTALPPM );
         m_Config->Write( _("PappradioXTALError"), valueString );
+
+        valueString.Printf( _("%f"), m_AttenuatorRealDB[0] );
+        m_Config->Write( _("PappradioAtt00dB"), valueString );
+
+        valueString.Printf( _("%f"), m_AttenuatorRealDB[1] );
+        m_Config->Write( _("PappradioAtt10dB"), valueString );
+
+        valueString.Printf( _("%f"), m_AttenuatorRealDB[2] );
+        m_Config->Write( _("PappradioAtt20dB"), valueString );
+
+        valueString.Printf( _("%f"), m_AttenuatorRealDB[3] );
+        m_Config->Write( _("PappradioAtt30dB"), valueString );
 
         m_Config->Write( _("AudioInputDeviceName"), 
                          m_AudioInputDevice.Name );
@@ -154,8 +194,11 @@ class GlobalConfig
     void        setSquelchLevel(float level);
     void        setFilter( float bandwidth );
 
-    void        setSampleRate( double frequency ){m_SampleRate = frequency;}
-    double      getSampleRate(){return m_SampleRate;}
+    void        setSampleRate( double frequency ){/*m_SampleRate = frequency;*/m_Registry.setSampleRate(frequency);}
+    double      getSampleRate(){return /*m_SampleRate*/(m_Registry.getSampleRate());}
+
+    void        setSampleRatePPM( double ppm ){ m_Registry.setSampleRatePPM( ppm ); }
+    double      getSampleRatePPM( )           { return ( m_Registry.getSampleRatePPM() ); }
 
     private:
 

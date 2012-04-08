@@ -38,11 +38,14 @@ class FirFilter
    ~FirFilter();
 
     void setBandwidth( double f0, double f1 = 0 );
+    void setDeHumm   ();
 
     ComplexSample update( ComplexSample input );
 
     private:
     FirFilter();
+
+    bool             m_DeHummSet;
 
     int              m_FilterLength;
     double           m_SampleRate;
@@ -57,6 +60,7 @@ class FirFilter
     kiss_fft_cpx*    m_Out1;
     kiss_fft_cpx*    m_Out2;
     kiss_fft_cpx*    m_Out3;
+    kiss_fft_cpx*    m_Mean;
 
     kiss_fft_cfg     m_KissCFGforeward;
     kiss_fft_cfg     m_KissCFGbackward;

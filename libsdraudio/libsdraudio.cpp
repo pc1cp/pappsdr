@@ -52,6 +52,8 @@ SDRAudio::SDRAudio( float sampleRate )
                                   0,
                                   2*8192 );
 
+    m_FirFilter1->setDeHumm();
+
     m_AutomaticGainControl = new AutomaticGainControl( m_SampleRate );
 }
 
@@ -241,7 +243,7 @@ void SDRAudio::setFilter( float bandwidth )
         m_SDRMode == SDR_MODE_DSB )
     {
         float f0 = bandwidth;
-        float f1 = 90.f;
+        float f1 = 75.f;
 
         if( f0 > fmax ) f0 = fmax;
 
