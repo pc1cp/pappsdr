@@ -45,12 +45,12 @@ SDRAudio::SDRAudio( float sampleRate )
     m_FirFilter0 = new FirFilter( m_SampleRate,
                                   m_FilterBandwidth,
                                   0,
-                                  2*8192 );
+                                  8192*2 );
 
     m_FirFilter1 = new FirFilter( m_SampleRate,
                                   m_FilterBandwidth,
                                   0,
-                                  2*8192 );
+                                  8192*2 );
 
     m_FirFilter1->setDeHumm();
 
@@ -112,7 +112,7 @@ bool SDRAudio::update( ComplexSample& input, ComplexSample& output )
             float sample = output.getI();
             output = ComplexSample( sample, sample );
             updateSquelch( output );
-            //output = m_FirFilter1->update( output );
+            output = m_FirFilter1->update( output );
 
             debugfile.write((char*)&output, sizeof(output) );
             return( true );
@@ -120,6 +120,7 @@ bool SDRAudio::update( ComplexSample& input, ComplexSample& output )
         }
         case SDR_MODE_AM:
         {
+            static std::fstream debugfile_am("am-out.raw", std::ios::binary|std::ios::out );
             output = input * ComplexSample( (float)cos(phase0),
                                             (float)sin(phase0) );
 
@@ -135,6 +136,7 @@ bool SDRAudio::update( ComplexSample& input, ComplexSample& output )
 
 
             updateSquelch( output );
+            debugfile_am.write((char*)&output, sizeof(output) );
             return( true );
             break;
         }
