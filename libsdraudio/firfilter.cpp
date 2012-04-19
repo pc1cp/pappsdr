@@ -152,27 +152,72 @@ ComplexSample FirFilter::update( ComplexSample input )
         {
             m_Out0[n].r *= m_CoefficientsFFT[n].r;
             m_Out0[n].i *= m_CoefficientsFFT[n].i;
-#if 0
+#if 1
             if( m_DeHummSet )
             {
                 float amplitude = sqrtf( m_Out0[n].r * m_Out0[n].r + m_Out0[n].i * m_Out0[n].i );
-                m_Mean[n].r = m_Mean[n].r * 0.999 + 0.001 * amplitude;
+                m_Mean[n].r = m_Mean[n].r * 0.99 + 0.01 * amplitude;
                 m_Mean[n].i = atan2f( m_Out0[n].r , m_Out0[n].i );
 
-                float factor = amplitude / m_Mean[n].r;
-                if( factor < 1.0 ) factor = 1.0/factor;
-                factor -= 1.0;
-                factor = factor > 1.0? 1:factor;
-
-                amplitude *= factor;
-                amplitude = amplitude < 0 ? 0:amplitude;
-
-            //    m_Out0[n].r = amplitude*sinf(m_Mean[n].i);
-            //    m_Out0[n].i = amplitude*cosf(m_Mean[n].i);
-            //}
+                //m_Out0[n].r = m_Mean[n].r*sinf(m_Mean[n].i);
+                //m_Out0[n].i = m_Mean[n].r*cosf(m_Mean[n].i);
+            }
 #endif
         }
-        
+
+        if( m_DeHummSet )
+        {
+            float mean = 0.f;
+            float max  = 0.f;
+
+            for( int n=0; n<m_FilterLength; n++ )
+            {
+                mean += m_Mean[n].r;
+                max   = max < m_Mean[n].r;
+            }
+
+            mean /= (float)m_FilterLength;
+            float contrast = 0.333f+(max+mean)/(max-mean);
+
+            for( int n=0; n<m_FilterLength; n++ )
+            {
+                float amplitude = sqrtf( m_Out0[n].r * m_Out0[n].r + m_Out0[n].i * m_Out0[n].i );
+
+                amplitude -= m_Mean[n  ].r*0.25;
+
+                amplitude  = (amplitude < 0.f)? 0.f:amplitude;
+
+                m_Out0[n].r = amplitude*sinf(m_Mean[n].i);
+                m_Out0[n].i = amplitude*cosf(m_Mean[n].i);
+
+                if(1)
+                if( (m_Mean[n].r/1.5f) > m_Mean[(n-3)%m_FilterLength].r &&
+                    (m_Mean[n].r/1.5f) > m_Mean[(n+3)%m_FilterLength].r )//&&
+                    //(m_Mean[n].r/1.5f) > m_Mean[(n-4)%m_FilterLength].r &&
+                    //(m_Mean[n].r/1.5f) > m_Mean[(n+4)%m_FilterLength].r &&
+                    //(m_Mean[n].r/1.5f) > m_Mean[(n-5)%m_FilterLength].r &&
+                    //(m_Mean[n].r/1.5f) > m_Mean[(n+5)%m_FilterLength].r &&
+                    //(m_Mean[n].r/1.5f) > m_Mean[(n-6)%m_FilterLength].r &&
+                    //(m_Mean[n].r/1.5f) > m_Mean[(n+6)%m_FilterLength].r &&
+                    //(m_Mean[n].r/1.5f) > m_Mean[(n-7)%m_FilterLength].r &&
+                    //(m_Mean[n].r/1.5f) > m_Mean[(n+7)%m_FilterLength].r &&
+                    //(m_Mean[n].r/1.5f) > m_Mean[(n-8)%m_FilterLength].r &&
+                    //(m_Mean[n].r/1.5f) > m_Mean[(n+8)%m_FilterLength].r )
+                {
+                    m_Out0[n-2].r = 0.f;
+                    m_Out0[n-2].i = 0.f;
+                    m_Out0[n-1].r = 0.f;
+                    m_Out0[n-1].i = 0.f;
+                    m_Out0[n  ].r = 0.f;
+                    m_Out0[n  ].i = 0.f;
+                    m_Out0[n+1].r = 0.f;
+                    m_Out0[n+1].i = 0.f;
+                    m_Out0[n+2].r = 0.f;
+                    m_Out0[n+2].i = 0.f;
+                }
+            }
+        }
+
         kiss_fft( m_KissCFGbackward, m_Out0, m_Out1  );
     }
 
@@ -184,26 +229,72 @@ ComplexSample FirFilter::update( ComplexSample input )
             m_Out2[n].r *= m_CoefficientsFFT[n].r;
             m_Out2[n].i *= m_CoefficientsFFT[n].i;
 
-#if 0
+#if 1
             if( m_DeHummSet )
             {
                 float amplitude = sqrtf( m_Out2[n].r * m_Out2[n].r + m_Out2[n].i * m_Out2[n].i );
-                m_Mean[n].r = m_Mean[n].r * 0.999 + 0.001 * amplitude;
+                m_Mean[n].r = m_Mean[n].r * 0.99 + 0.01 * amplitude;
                 m_Mean[n].i = atan2f( m_Out2[n].r , m_Out2[n].i );
 
-                float factor = amplitude / m_Mean[n].r;
-                if( factor < 1.0 ) factor = 1.0/factor;
-                factor -= 1.0;
-                factor = factor > 1.0? 1:factor;
-
-                amplitude *= factor;
-                amplitude = amplitude < 0 ? 0:amplitude;
-
-                m_Out2[n].r = amplitude*sinf(m_Mean[n].i);
-                m_Out2[n].i = amplitude*cosf(m_Mean[n].i);
+                //m_Out2[n].r = m_Mean[n].r*sinf(m_Mean[n].i);
+                //m_Out2[n].i = m_Mean[n].r*cosf(m_Mean[n].i);
             }
 #endif
         }
+
+        if( m_DeHummSet )
+        {
+            float mean = 0.f;
+            float max  = 0.f;
+
+            for( int n=0; n<m_FilterLength; n++ )
+            {
+                mean += m_Mean[n].r;
+                max   = max < m_Mean[n].r;
+            }
+
+            mean /= (float)m_FilterLength;
+            float contrast = 0.333f+(max+mean)/(max-mean);
+
+            for( int n=0; n<m_FilterLength; n++ )
+            {
+                float amplitude = sqrtf( m_Out2[n].r * m_Out2[n].r + m_Out2[n].i * m_Out2[n].i );
+
+                amplitude -= m_Mean[n  ].r*0.25;
+
+                amplitude  = (amplitude < 0.f)? 0.f:amplitude;
+
+                m_Out2[n].r = amplitude*sinf(m_Mean[n].i);
+                m_Out2[n].i = amplitude*cosf(m_Mean[n].i);
+
+                if(1)
+                if( (m_Mean[n].r/1.5f) > m_Mean[(n-3)%m_FilterLength].r &&
+                    (m_Mean[n].r/1.5f) > m_Mean[(n+3)%m_FilterLength].r )//&&
+                    //(m_Mean[n].r/1.5f) > m_Mean[(n-4)%m_FilterLength].r &&
+                    //(m_Mean[n].r/1.5f) > m_Mean[(n+4)%m_FilterLength].r &&
+                    //(m_Mean[n].r/1.5f) > m_Mean[(n-5)%m_FilterLength].r &&
+                    //(m_Mean[n].r/1.5f) > m_Mean[(n+5)%m_FilterLength].r &&
+                    //(m_Mean[n].r/1.5f) > m_Mean[(n-6)%m_FilterLength].r &&
+                    //(m_Mean[n].r/1.5f) > m_Mean[(n+6)%m_FilterLength].r &&
+                    //(m_Mean[n].r/1.5f) > m_Mean[(n-7)%m_FilterLength].r &&
+                    //(m_Mean[n].r/1.5f) > m_Mean[(n+7)%m_FilterLength].r &&
+                    //(m_Mean[n].r/1.5f) > m_Mean[(n-8)%m_FilterLength].r &&
+                    //(m_Mean[n].r/1.5f) > m_Mean[(n+8)%m_FilterLength].r )
+                {
+                    m_Out2[n-2].r = 0.f;
+                    m_Out2[n-2].i = 0.f;
+                    m_Out2[n-1].r = 0.f;
+                    m_Out2[n-1].i = 0.f;
+                    m_Out2[n  ].r = 0.f;
+                    m_Out2[n  ].i = 0.f;
+                    m_Out2[n+1].r = 0.f;
+                    m_Out2[n+1].i = 0.f;
+                    m_Out2[n+2].r = 0.f;
+                    m_Out2[n+2].i = 0.f;
+                }
+            }
+        }
+
         kiss_fft( m_KissCFGbackward, m_Out2, m_Out3  );
     }
 
