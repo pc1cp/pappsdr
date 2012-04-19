@@ -25,7 +25,10 @@ wxCustomSpinCtrl::wxCustomSpinCtrl( wxWindow*         parent,
     m_Digits   ( digits    )
 {
     m_TextControl = new wxTextCtrl( this, wxID_ANY, _(""), wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER );
+
     m_SpinButton  = new wxSpinButton( this, wxID_ANY );
+    m_SpinButton->SetRange( -100000, +100000 );
+    m_SpinButton->SetValue( 0 );
 
     wxBoxSizer*  topSizer = new wxBoxSizer( wxHORIZONTAL );
     topSizer->Add( m_TextControl, 0, wxALIGN_CENTER|wxALIGN_CENTER_VERTICAL );

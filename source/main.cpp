@@ -878,6 +878,8 @@ void MyFrame::onButtonFlt6000(wxCommandEvent& WXUNUSED(event))
 
 void MyFrame::OnLoFreqChanged( wxCommandEvent& WXUNUSED(event) )
 {
+    GlobalConfig* config = GlobalConfig::getInstance();
+
     std::cerr << "LO-Changed\n";
     std::cerr << "Target-f : " << m_LCDisplay->getLOFreq() << "\n";
     m_Pappradio->setFrequency( (double)m_LCDisplay->getLOFreq() );
@@ -954,7 +956,8 @@ void MyFrame::OnLoFreqChanged( wxCommandEvent& WXUNUSED(event) )
     }
 
     // update displayed LO-Frequency
-    m_LCDisplay->setLOFreqDisplay( m_Pappradio->getFrequency()*(1.0+5.33/1000000.0) );
+    m_LCDisplay->setLOFreqDisplay( m_Pappradio->getFrequency()
+                                  *(1.0+config->getXTalPPM()/1000000.0) );
 
     // update displayed Tune-Frequency
     m_LCDisplay->setFreqDisplay( m_LCDisplay->getLOFreqDisplay() +

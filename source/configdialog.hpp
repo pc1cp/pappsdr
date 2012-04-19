@@ -13,13 +13,14 @@ class   wxCustomConfigDialog : public wxDialog
    ~wxCustomConfigDialog();
 
     private:
-    void            onInputDevice   ( wxCommandEvent& event );
-    void            onOutputDevice  ( wxCommandEvent& event );
-    void            onSampleRate    ( wxCommandEvent& event );
-    void            onSampleRateReal( wxSpinEvent&    event );
-    void            onSampleRatePPM ( wxSpinEvent&    event );
+    void            onInputDevice     ( wxCommandEvent& event );
+    void            onOutputDevice    ( wxCommandEvent& event );
+    void            onSampleRate      ( wxCommandEvent& event );
+    void            onSampleRateReal  ( wxSpinEvent&    event );
+    void            onSampleRatePPM   ( wxSpinEvent&    event );
 
-    wxPanel*        createAudioIOPage( wxBookCtrlBase* parent );
+    wxPanel*        createAudioIOPage ( wxBookCtrlBase* parent );
+    wxPanel*        createHardwarePage( wxBookCtrlBase* parent );
 
     wxWindow*       m_Parent;
 
@@ -35,6 +36,13 @@ class   wxCustomConfigDialog : public wxDialog
 
     wxCustomSpinCtrl* m_SampleRateSpin;
     wxCustomSpinCtrl* m_SampleRatePPMSpin;
+
+    wxCustomSpinCtrl* m_XTalPPMSpin;
+
+    wxCustomSpinCtrl* m_Att00Spin;
+    wxCustomSpinCtrl* m_Att10Spin;
+    wxCustomSpinCtrl* m_Att20Spin;
+    wxCustomSpinCtrl* m_Att30Spin;
 
     wxNotebook*     m_Notebook;
 

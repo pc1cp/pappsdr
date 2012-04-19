@@ -7,6 +7,8 @@
 #include "wx/wx.h"
 #include "wx/thread.h"
 #include "wx/config.h"
+#include "wx/fileconf.h"
+//#include "wx/msw/regconf.h"
 #include "audiothread.hpp"
 
 // Audio-Device-Struct...
@@ -30,7 +32,19 @@ class ConfigRegistry
     public:
     ConfigRegistry()
     {
-        m_Config = new wxConfig(_("PappSDR"));
+        m_Config = new wxConfig(_("PappSDR") );
+
+        wxFileConfig* fconf = dynamic_cast<wxFileConfig*>( m_Config );
+
+        if( fconf )
+        {
+            std::cout << "is file-config !!\n";
+            std::cout << "Path is \"" << fconf->GetPath().To8BitData() << "\"\n";
+        }
+        else
+        {
+            std::cout << "is not a file-config!!\n";
+        }
 
         // load settings ------------------------------------------------------
         loadSettings();
@@ -40,6 +54,8 @@ class ConfigRegistry
     {
         // save settings ------------------------------------------------------
         saveSettings();
+
+        delete m_Config;
     }
 
     void   setSampleRate( double value ){ m_AudioSampleRate = value;    }
@@ -53,6 +69,9 @@ class ConfigRegistry
 
     void   setOutputDevice( wxString deviceName ) { m_AudioOutputDevice.Name = deviceName; }
     wxString getOutputDevice( ) { return m_AudioOutputDevice.Name; }
+
+    void    setXTalPPM( double value ){ m_PappradioXTALPPM = value; }
+    double  getXTalPPM() { return m_PappradioXTALPPM; }
 
     private:
 
@@ -123,6 +142,8 @@ class ConfigRegistry
 
         m_Config->Write( _("AudioOutputDeviceName"),
                          m_AudioOutputDevice.Name );
+
+        m_Config->Flush();
     }
 
     // Audio-Devices ----------------------------------------------------------
@@ -181,6 +202,7 @@ class GlobalConfig
     void setTune( float freq );
 
     void setAGCTime( double upTime, double downTime );
+
     void setATTdB  ( double AttenuatorValue );
 
     void  setSLevelCorrection( float dBValue ){ m_SLevelCorrection=dBValue; }
@@ -194,11 +216,14 @@ class GlobalConfig
     void        setSquelchLevel(float level);
     void        setFilter( float bandwidth );
 
-    void        setSampleRate( double frequency ){/*m_SampleRate = frequency;*/m_Registry.setSampleRate(frequency);}
-    double      getSampleRate(){return /*m_SampleRate*/(m_Registry.getSampleRate());}
+    void        setSampleRate( double frequency ){m_Registry.setSampleRate(frequency);}
+    double      getSampleRate(){return ( m_Registry.getSampleRate() );}
 
     void        setSampleRatePPM( double ppm ){ m_Registry.setSampleRatePPM( ppm ); }
-    double      getSampleRatePPM( )           { return ( m_Registry.getSampleRatePPM() ); }
+    double      getSampleRatePPM( ){ return ( m_Registry.getSampleRatePPM() ); }
+
+    void        setXTalPPM( double ppm ){ m_Registry.setXTalPPM( ppm ); }
+    double      getXTalPPM( ){ return ( m_Registry.getXTalPPM() ); }
 
     private:
 

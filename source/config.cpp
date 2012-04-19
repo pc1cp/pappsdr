@@ -57,8 +57,7 @@ GlobalConfig::GlobalConfig()
 			const PaHostApiInfo* HostApiInfo = Pa_GetHostApiInfo( DeviceInfo->hostApi );
 
 #ifndef _WIN32
-            if( DeviceInfo->maxOutputChannels >= 2 &&
-				HostApiInfo->type == paALSA )
+            if( DeviceInfo->maxOutputChannels >= 2 )
             {
                 // add audio-device to list of usable audio-devices.
                 AudioDevice_t entry;
@@ -116,8 +115,7 @@ GlobalConfig::GlobalConfig()
 			const PaHostApiInfo* HostApiInfo = Pa_GetHostApiInfo( DeviceInfo->hostApi );
 
 #ifndef _WIN32
-            if( DeviceInfo->maxInputChannels >= 2 &&
-				HostApiInfo->type == paALSA )
+            if( DeviceInfo->maxInputChannels >= 2 )
             {
                 // add audio-device to list of usable audio-devices.
                 AudioDevice_t entry;

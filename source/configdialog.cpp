@@ -1,7 +1,7 @@
 #include "configdialog.hpp"
 #include "config.hpp"
 
-enum 
+enum
 {
     ID_CONF_INPUT_DEVICE,
     ID_CONF_OUTPUT_DEVICE,
@@ -13,11 +13,11 @@ enum
 
 wxCustomConfigDialog::wxCustomConfigDialog( wxWindow* parent )
     :
-    wxDialog( parent, 
-              -1, 
-              _("Configuration"), 
-              wxDefaultPosition, 
-              wxDefaultSize, 
+    wxDialog( parent,
+              -1,
+              _("Configuration"),
+              wxDefaultPosition,
+              wxDefaultSize,
               wxDEFAULT_DIALOG_STYLE ),
     m_Parent( parent )
 {
@@ -29,10 +29,10 @@ wxCustomConfigDialog::wxCustomConfigDialog( wxWindow* parent )
     m_ButtonDefault = new wxButton( this, wxID_ANY   , _("Reset to Defaults") );
 
 
-    m_Notebook = new wxNotebook( this, 
-                                 wxID_ANY, 
-                                 wxDefaultPosition, 
-                                 wxDefaultSize, //Size(500, 500), 
+    m_Notebook = new wxNotebook( this,
+                                 wxID_ANY,
+                                 wxDefaultPosition,
+                                 wxDefaultSize, //Size(500, 500),
                                  wxNB_MULTILINE );
 
     // -------------------------------------------------------------------------
@@ -45,7 +45,7 @@ wxCustomConfigDialog::wxCustomConfigDialog( wxWindow* parent )
     // Hardware-Settings-Page
     // -------------------------------------------------------------------------
 
-    m_HardwarePanel = new wxPanel( m_Notebook );
+    m_HardwarePanel = createHardwarePage( m_Notebook );
 
     // -------------------------------------------------------------------------
     // Receiver-Settings-Page
@@ -101,13 +101,13 @@ wxPanel* wxCustomConfigDialog::createAudioIOPage( wxBookCtrlBase* parent )
 
     wxBoxSizer* pageSizer = new wxBoxSizer( wxVERTICAL );
 
-    wxStaticBoxSizer* inputSizer = 
+    wxStaticBoxSizer* inputSizer =
         new wxStaticBoxSizer( wxVERTICAL, page, _("Input-Device") );
 
-    wxStaticBoxSizer* outputSizer = 
+    wxStaticBoxSizer* outputSizer =
         new wxStaticBoxSizer( wxVERTICAL, page, _("Output-Device") );
 
-    wxStaticBoxSizer* samplerateSizer = 
+    wxStaticBoxSizer* samplerateSizer =
         new wxStaticBoxSizer( wxVERTICAL, page, _("Samplerate") );
 
 	wxChoice* inputDeviceChoice = new wxChoice( page, ID_CONF_INPUT_DEVICE, wxDefaultPosition, wxDefaultSize, inputDeviceChoices );
@@ -123,7 +123,7 @@ wxPanel* wxCustomConfigDialog::createAudioIOPage( wxBookCtrlBase* parent )
 	samplerateChoices.Add( _("96000 Samples/Second") );
 	samplerateChoices.Add( _("176400 Samples/Second") );
 	samplerateChoices.Add( _("192000 Samples/Second") );
-	
+
 	m_SampleRateChoice = new wxChoice  ( page, ID_CONF_SAMPLERATE, wxDefaultPosition, wxDefaultSize, samplerateChoices );
     m_SampleRateSpin = new wxCustomSpinCtrl( page, ID_CONF_SAMPLERATE_ENTER, 0, 200000, 0, 1 );
     m_SampleRatePPMSpin = new wxCustomSpinCtrl( page, ID_CONF_SAMPLERATE_PPM, -5000, +5000, 0, 1 );
@@ -184,7 +184,7 @@ wxPanel* wxCustomConfigDialog::createAudioIOPage( wxBookCtrlBase* parent )
     samplerateSizer->Add( m_SampleRateChoice,        0, wxEXPAND|wxALL, 8 );
     samplerateSizer->Add( sampleRateCorrectionSizer, 0, wxEXPAND|wxALL, 8 );
 
-    wxStaticText* hintText = new wxStaticText( page, -1, 
+    wxStaticText* hintText = new wxStaticText( page, -1,
         _( "When choosing audio-devices, your should be aware that it is "
            "absolutely required to choose devices from the same hardware-"
            "device and from the same host-API. "
@@ -197,6 +197,47 @@ wxPanel* wxCustomConfigDialog::createAudioIOPage( wxBookCtrlBase* parent )
     pageSizer->Add( outputSizer,     0, wxEXPAND|wxALL, 8);
     pageSizer->Add( hintText,        0, wxEXPAND|wxALL, 8);
     pageSizer->Add( samplerateSizer, 1, wxEXPAND|wxALL, 8);
+
+    page->SetSizerAndFit( pageSizer );
+    return( page );
+}
+
+wxPanel* wxCustomConfigDialog::createHardwarePage( wxBookCtrlBase* parent )
+{
+    GlobalConfig* config=GlobalConfig::getInstance();
+
+    wxPanel* page = new wxPanel( parent );
+
+    wxBoxSizer* pageSizer = new wxBoxSizer( wxVERTICAL );
+    wxStaticBoxSizer* xTalSizer =
+        new wxStaticBoxSizer( wxVERTICAL, page, _("XTal-Deviation (PPM)") );
+
+    double value = config->getXTalPPM();
+    m_XTalPPMSpin = new wxCustomSpinCtrl( page, wxID_ANY, -2000, 2000, value, 0.1 , 4);
+    xTalSizer->Add( m_XTalPPMSpin,  0, wxEXPAND|wxALL, 8 );
+
+    wxStaticBoxSizer* attSizer =
+        new wxStaticBoxSizer( wxVERTICAL, page, _("Attenuator-Calibration") );
+
+    m_Att00Spin = new wxCustomSpinCtrl( page, wxID_ANY, -240, 240,   0, 0.1 , 2);
+    m_Att10Spin = new wxCustomSpinCtrl( page, wxID_ANY, -240, 240, -10, 0.1 , 2);
+    m_Att20Spin = new wxCustomSpinCtrl( page, wxID_ANY, -240, 240, -20, 0.1 , 2);
+    m_Att30Spin = new wxCustomSpinCtrl( page, wxID_ANY, -240, 240, -30, 0.1 , 2);
+
+    wxStaticText* hintText = new wxStaticText( page, -1,
+        _( "The Attenuator 0dB (\"no Attenuator\") value is used for S-Meter "
+           "calibration. The other three values are relative to the ATT0-value."
+           ) );
+    hintText->Wrap( 500 );
+
+    attSizer->Add( m_Att00Spin,     0, wxEXPAND|wxALL, 8 );
+    attSizer->Add( m_Att10Spin,     0, wxEXPAND|wxALL, 8 );
+    attSizer->Add( m_Att20Spin,     0, wxEXPAND|wxALL, 8 );
+    attSizer->Add( m_Att30Spin,     0, wxEXPAND|wxALL, 8 );
+    attSizer->Add( hintText,        0, wxEXPAND|wxALL, 8 );
+
+    pageSizer->Add( xTalSizer,      0, wxEXPAND|wxALL, 8 );
+    pageSizer->Add( attSizer,       0, wxEXPAND|wxALL, 8 );
 
     page->SetSizerAndFit( pageSizer );
     return( page );
@@ -224,23 +265,23 @@ void wxCustomConfigDialog::onSampleRate( wxCommandEvent& event )
 
     switch( event.GetInt() )
     {
-        case 0:    
+        case 0:
             config->setSampleRate( 44100.0 );
             m_SampleRateSpin->setValue( 44100.0 * ppmFactor );
             break;
-        case 1:    
+        case 1:
             config->setSampleRate( 48000.0 );
             m_SampleRateSpin->setValue( 48000.0 * ppmFactor );
             break;
-        case 2:    
+        case 2:
             config->setSampleRate( 88200.0 );
             m_SampleRateSpin->setValue( 88200.0 * ppmFactor );
             break;
-        case 3:    
+        case 3:
             config->setSampleRate( 96000.0 );
             m_SampleRateSpin->setValue( 96000.0 * ppmFactor );
             break;
-        case 4:    
+        case 4:
             config->setSampleRate( 176400.0 );
             m_SampleRateSpin->setValue( 176400.0 * ppmFactor );
             break;
@@ -264,16 +305,16 @@ void wxCustomConfigDialog::onSampleRateReal( wxSpinEvent& WXUNUSED(event) )
         case 0:
             sampleRate = 44100.0;
             break;
-        case 1:    
+        case 1:
             sampleRate = 48000.0;
             break;
-        case 2:    
+        case 2:
             sampleRate = 88200.0;
             break;
-        case 3:    
+        case 3:
             sampleRate = 96000.0;
             break;
-        case 4:    
+        case 4:
             sampleRate = 176400.0;
             break;
         case 5:
@@ -301,16 +342,16 @@ void wxCustomConfigDialog::onSampleRatePPM( wxSpinEvent& WXUNUSED(event) )
         case 0:
             sampleRate = 44100.0;
             break;
-        case 1:    
+        case 1:
             sampleRate = 48000.0;
             break;
-        case 2:    
+        case 2:
             sampleRate = 88200.0;
             break;
-        case 3:    
+        case 3:
             sampleRate = 96000.0;
             break;
-        case 4:    
+        case 4:
             sampleRate = 176400.0;
             break;
         case 5:
