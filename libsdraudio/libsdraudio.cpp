@@ -52,7 +52,7 @@ SDRAudio::SDRAudio( float sampleRate )
                                   0,
                                   8192*2 );
 
-    m_FirFilter1->setDeHumm();
+//    m_FirFilter1->setDeHumm();
 
     m_AutomaticGainControl = new AutomaticGainControl( m_SampleRate );
 }
@@ -269,6 +269,16 @@ void SDRAudio::setFilter( float bandwidth )
         m_FilterToneShift = 0.f;
         m_FilterBandwidth = f0;
     }
+}
+
+void SDRAudio::setANF( double value )
+{
+    m_FirFilter1->setANF( value );
+}
+
+void SDRAudio::setDNR( double value )
+{
+    m_FirFilter1->setDNR( value );
 }
 
 ComplexSample SDRAudio::demodulate( ComplexSample& inputSample )

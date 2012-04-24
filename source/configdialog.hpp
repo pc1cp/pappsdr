@@ -16,8 +16,13 @@ class   wxCustomConfigDialog : public wxDialog
     void            onInputDevice     ( wxCommandEvent& event );
     void            onOutputDevice    ( wxCommandEvent& event );
     void            onSampleRate      ( wxCommandEvent& event );
-    void            onSampleRateReal  ( wxSpinEvent&    event );
-    void            onSampleRatePPM   ( wxSpinEvent&    event );
+    void            onSampleRateReal  ( wxCommandEvent& event );
+    void            onSampleRatePPM   ( wxCommandEvent& event );
+    void            onXTalPPM         ( wxCommandEvent& event );
+    void            onAttenuator00    ( wxCommandEvent& event );
+    void            onAttenuator10    ( wxCommandEvent& event );
+    void            onAttenuator20    ( wxCommandEvent& event );
+    void            onAttenuator30    ( wxCommandEvent& event );
 
     wxPanel*        createAudioIOPage ( wxBookCtrlBase* parent );
     wxPanel*        createHardwarePage( wxBookCtrlBase* parent );

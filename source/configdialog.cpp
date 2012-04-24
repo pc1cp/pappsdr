@@ -8,6 +8,11 @@ enum
     ID_CONF_SAMPLERATE,
     ID_CONF_SAMPLERATE_ENTER,
     ID_CONF_SAMPLERATE_PPM,
+    ID_CONF_XTAL_PPM,
+    ID_CONF_ATT00,
+    ID_CONF_ATT10,
+    ID_CONF_ATT20,
+    ID_CONF_ATT30,
     ID_CONF_RESET
 };
 
@@ -199,6 +204,13 @@ wxPanel* wxCustomConfigDialog::createAudioIOPage( wxBookCtrlBase* parent )
     pageSizer->Add( samplerateSizer, 1, wxEXPAND|wxALL, 8);
 
     page->SetSizerAndFit( pageSizer );
+
+    Connect( ID_CONF_SAMPLERATE_ENTER, wxEVT_CUSTOM_SPINCTRL,
+            wxCommandEventHandler( wxCustomConfigDialog::onSampleRateReal ) );
+
+    Connect( ID_CONF_SAMPLERATE_PPM, wxEVT_CUSTOM_SPINCTRL,
+            wxCommandEventHandler( wxCustomConfigDialog::onSampleRatePPM ) );
+
     return( page );
 }
 
@@ -213,33 +225,67 @@ wxPanel* wxCustomConfigDialog::createHardwarePage( wxBookCtrlBase* parent )
         new wxStaticBoxSizer( wxVERTICAL, page, _("XTal-Deviation (PPM)") );
 
     double value = config->getXTalPPM();
-    m_XTalPPMSpin = new wxCustomSpinCtrl( page, wxID_ANY, -2000, 2000, value, 0.1 , 4);
+    m_XTalPPMSpin = new wxCustomSpinCtrl( page, ID_CONF_XTAL_PPM, -2000, 2000, value, 0.1 , 4);
     xTalSizer->Add( m_XTalPPMSpin,  0, wxEXPAND|wxALL, 8 );
 
     wxStaticBoxSizer* attSizer =
         new wxStaticBoxSizer( wxVERTICAL, page, _("Attenuator-Calibration") );
 
-    m_Att00Spin = new wxCustomSpinCtrl( page, wxID_ANY, -240, 240,   0, 0.1 , 2);
-    m_Att10Spin = new wxCustomSpinCtrl( page, wxID_ANY, -240, 240, -10, 0.1 , 2);
-    m_Att20Spin = new wxCustomSpinCtrl( page, wxID_ANY, -240, 240, -20, 0.1 , 2);
-    m_Att30Spin = new wxCustomSpinCtrl( page, wxID_ANY, -240, 240, -30, 0.1 , 2);
+    value = config->getAttValue(0);
+    m_Att00Spin = new wxCustomSpinCtrl( page, ID_CONF_ATT00, -240, 240, value, 0.1 , 2);
+    value = config->getAttValue(1);
+    m_Att10Spin = new wxCustomSpinCtrl( page, ID_CONF_ATT10, -240, 240, value, 0.1 , 2);
+    value = config->getAttValue(2);
+    m_Att20Spin = new wxCustomSpinCtrl( page, ID_CONF_ATT20, -240, 240, value, 0.1 , 2);
+    value = config->getAttValue(3);
+    m_Att30Spin = new wxCustomSpinCtrl( page, ID_CONF_ATT30, -240, 240, value, 0.1 , 2);
 
     wxStaticText* hintText = new wxStaticText( page, -1,
         _( "The Attenuator 0dB (\"no Attenuator\") value is used for S-Meter "
-           "calibration. The other three values are relative to the ATT0-value."
+           "calibration. The other three values should be set relative to the "
+           "ATT0-value such as that an S9-signal is an S9-signal regardless of "
+           " the attenuator set. At least for my radio the default stepping "
+           " seems to be 0dB, -12dB, -24dB -36dB instead of 0, -10, -20, -30dB."
            ) );
     hintText->Wrap( 500 );
 
-    attSizer->Add( m_Att00Spin,     0, wxEXPAND|wxALL, 8 );
-    attSizer->Add( m_Att10Spin,     0, wxEXPAND|wxALL, 8 );
-    attSizer->Add( m_Att20Spin,     0, wxEXPAND|wxALL, 8 );
-    attSizer->Add( m_Att30Spin,     0, wxEXPAND|wxALL, 8 );
+    wxGridSizer* attGrid = new wxGridSizer( 2, 4 );
+
+    attGrid->Add( new wxStaticText( page, wxID_ANY, _("Attenuation-Correction (OFF)") ), 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL );
+    attGrid->Add( m_Att00Spin, 0, wxEXPAND|wxALL, 0 );
+
+    attGrid->Add( new wxStaticText( page, wxID_ANY, _("Attenuation-Correction (-10 dB)") ), 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL );
+    attGrid->Add( m_Att10Spin, 0, wxEXPAND|wxALL, 0 );
+
+    attGrid->Add( new wxStaticText( page, wxID_ANY, _("Attenuation-Correction (-20 dB)") ), 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL );
+    attGrid->Add( m_Att20Spin, 0, wxEXPAND|wxALL, 0 );
+
+    attGrid->Add( new wxStaticText( page, wxID_ANY, _("Attenuation-Correction (-30 dB)") ), 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL );
+    attGrid->Add( m_Att30Spin, 0, wxEXPAND|wxALL, 0 );
+
+    attSizer->Add( attGrid,     0, wxEXPAND|wxALL, 8 );
     attSizer->Add( hintText,        0, wxEXPAND|wxALL, 8 );
 
     pageSizer->Add( xTalSizer,      0, wxEXPAND|wxALL, 8 );
     pageSizer->Add( attSizer,       0, wxEXPAND|wxALL, 8 );
 
     page->SetSizerAndFit( pageSizer );
+
+    Connect( ID_CONF_ATT00, wxEVT_CUSTOM_SPINCTRL,
+            wxCommandEventHandler( wxCustomConfigDialog::onAttenuator00 ) );
+
+    Connect( ID_CONF_ATT10, wxEVT_CUSTOM_SPINCTRL,
+            wxCommandEventHandler( wxCustomConfigDialog::onAttenuator10 ) );
+
+    Connect( ID_CONF_ATT20, wxEVT_CUSTOM_SPINCTRL,
+            wxCommandEventHandler( wxCustomConfigDialog::onAttenuator20 ) );
+
+    Connect( ID_CONF_ATT30, wxEVT_CUSTOM_SPINCTRL,
+            wxCommandEventHandler( wxCustomConfigDialog::onAttenuator30 ) );
+
+    Connect( ID_CONF_XTAL_PPM, wxEVT_CUSTOM_SPINCTRL,
+            wxCommandEventHandler( wxCustomConfigDialog::onXTalPPM ) );
+
     return( page );
 }
 
@@ -257,6 +303,8 @@ void wxCustomConfigDialog::onOutputDevice( wxCommandEvent& event )
 
 void wxCustomConfigDialog::onSampleRate( wxCommandEvent& event )
 {
+    std::cerr << "onSampleRate();\n";
+
     GlobalConfig* config=GlobalConfig::getInstance();
 
     float ppmFactor  = m_SampleRatePPMSpin->getValue();
@@ -293,8 +341,9 @@ void wxCustomConfigDialog::onSampleRate( wxCommandEvent& event )
    }
 }
 
-void wxCustomConfigDialog::onSampleRateReal( wxSpinEvent& WXUNUSED(event) )
+void wxCustomConfigDialog::onSampleRateReal( wxCommandEvent& WXUNUSED(event) )
 {
+    std::cerr << "onSampleRateReal();\n";
     GlobalConfig* config=GlobalConfig::getInstance();
 
     int sampleRateIndex = m_SampleRateChoice->GetSelection();
@@ -330,7 +379,7 @@ void wxCustomConfigDialog::onSampleRateReal( wxSpinEvent& WXUNUSED(event) )
    config->setSampleRatePPM( ppm );
 }
 
-void wxCustomConfigDialog::onSampleRatePPM( wxSpinEvent& WXUNUSED(event) )
+void wxCustomConfigDialog::onSampleRatePPM( wxCommandEvent& WXUNUSED(event) )
 {
     GlobalConfig* config=GlobalConfig::getInstance();
 
@@ -365,12 +414,60 @@ void wxCustomConfigDialog::onSampleRatePPM( wxSpinEvent& WXUNUSED(event) )
     m_SampleRateSpin->setValue( sampleRateReal );
 }
 
+void wxCustomConfigDialog::onXTalPPM( wxCommandEvent& WXUNUSED(event) )
+{
+    GlobalConfig* config=GlobalConfig::getInstance();
+
+    double value = m_XTalPPMSpin->getValue();
+
+    config->setXTalPPM( value );
+    std::cerr << "xtalppm:" << value << "\n";
+}
+
+void wxCustomConfigDialog::onAttenuator00( wxCommandEvent& WXUNUSED(event) )
+{
+    GlobalConfig* config=GlobalConfig::getInstance();
+
+    double value = m_Att00Spin->getValue();
+
+    config->setAttValue( 0, value );
+    std::cerr << "attenuator00:" << value << "\n";
+}
+
+void wxCustomConfigDialog::onAttenuator10( wxCommandEvent& WXUNUSED(event) )
+{
+    GlobalConfig* config=GlobalConfig::getInstance();
+
+    double value = m_Att10Spin->getValue();
+
+    config->setAttValue( 1, value );
+    std::cerr << "attenuator10:" << value << "\n";
+}
+
+void wxCustomConfigDialog::onAttenuator20( wxCommandEvent& WXUNUSED(event) )
+{
+    GlobalConfig* config=GlobalConfig::getInstance();
+
+    double value = m_Att20Spin->getValue();
+
+    config->setAttValue( 2, value );
+    std::cerr << "attenuator20:" << value << "\n";
+}
+
+void wxCustomConfigDialog::onAttenuator30( wxCommandEvent& WXUNUSED(event) )
+{
+    GlobalConfig* config=GlobalConfig::getInstance();
+
+    double value = m_Att30Spin->getValue();
+
+    config->setAttValue( 3, value );
+    std::cerr << "attenuator30:" << value << "\n";
+}
+
 BEGIN_EVENT_TABLE(wxCustomConfigDialog, wxDialog)
-    EVT_CHOICE(ID_CONF_INPUT_DEVICE,     wxCustomConfigDialog::onInputDevice    )
-    EVT_CHOICE(ID_CONF_OUTPUT_DEVICE,    wxCustomConfigDialog::onOutputDevice   )
-    EVT_CHOICE(ID_CONF_SAMPLERATE,       wxCustomConfigDialog::onSampleRate     )
-    EVT_SPIN  (ID_CONF_SAMPLERATE_ENTER, wxCustomConfigDialog::onSampleRateReal )
-    EVT_SPIN  (ID_CONF_SAMPLERATE_PPM  , wxCustomConfigDialog::onSampleRatePPM  )
+    EVT_CHOICE(ID_CONF_INPUT_DEVICE,     wxCustomConfigDialog::onInputDevice   )
+    EVT_CHOICE(ID_CONF_OUTPUT_DEVICE,    wxCustomConfigDialog::onOutputDevice  )
+    EVT_CHOICE(ID_CONF_SAMPLERATE,       wxCustomConfigDialog::onSampleRate    )
 END_EVENT_TABLE()
 
 

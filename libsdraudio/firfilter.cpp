@@ -77,8 +77,11 @@ FirFilter::FirFilter( double  sampleRate, double f0, double f1, int length )
     m_Pos0 = 0;
     m_Pos1 = m_FilterLength/2;
 
-    // clear DeHumm-Filter-Flag
-    m_DeHummSet = false;
+    // clear DNR-Level (turn off)
+    m_DNRLevel = 0.0;
+
+    // clear ANF-Level (turn off)
+    m_ANFLevel = 0.0;
 }
 
 FirFilter::~FirFilter()
@@ -95,11 +98,6 @@ FirFilter::~FirFilter()
     delete [] m_Out3;
 
     delete [] m_Mean;
-}
-
-void FirFilter::setDeHumm()
-{
-    m_DeHummSet = true;
 }
 
 void FirFilter::setBandwidth( double fMin, double fMax )
@@ -153,7 +151,7 @@ ComplexSample FirFilter::update( ComplexSample input )
             m_Out0[n].r *= m_CoefficientsFFT[n].r;
             m_Out0[n].i *= m_CoefficientsFFT[n].i;
 #if 1
-            if( m_DeHummSet )
+            //if( m_DeHummSet )
             {
                 float amplitude = sqrtf( m_Out0[n].r * m_Out0[n].r + m_Out0[n].i * m_Out0[n].i );
                 m_Mean[n].r = m_Mean[n].r * 0.99 + 0.01 * amplitude;
@@ -165,7 +163,7 @@ ComplexSample FirFilter::update( ComplexSample input )
 #endif
         }
 
-        if( m_DeHummSet )
+        //if( m_DeHummSet )
         {
             float mean = 0.f;
             float max  = 0.f;
@@ -183,16 +181,16 @@ ComplexSample FirFilter::update( ComplexSample input )
             {
                 float amplitude = sqrtf( m_Out0[n].r * m_Out0[n].r + m_Out0[n].i * m_Out0[n].i );
 
-                amplitude -= m_Mean[n  ].r*0.25;
+                amplitude -= m_Mean[n  ].r*m_DNRLevel;
 
                 amplitude  = (amplitude < 0.f)? 0.f:amplitude;
 
                 m_Out0[n].r = amplitude*sinf(m_Mean[n].i);
                 m_Out0[n].i = amplitude*cosf(m_Mean[n].i);
 
-                if(1)
-                if( (m_Mean[n].r/1.5f) > m_Mean[(n-3)%m_FilterLength].r &&
-                    (m_Mean[n].r/1.5f) > m_Mean[(n+3)%m_FilterLength].r )//&&
+                //if(0)
+                if( (m_Mean[n].r*m_ANFLevel) > m_Mean[(n-3)%m_FilterLength].r &&
+                    (m_Mean[n].r*m_ANFLevel) > m_Mean[(n+3)%m_FilterLength].r )//&&
                     //(m_Mean[n].r/1.5f) > m_Mean[(n-4)%m_FilterLength].r &&
                     //(m_Mean[n].r/1.5f) > m_Mean[(n+4)%m_FilterLength].r &&
                     //(m_Mean[n].r/1.5f) > m_Mean[(n-5)%m_FilterLength].r &&
@@ -204,16 +202,12 @@ ComplexSample FirFilter::update( ComplexSample input )
                     //(m_Mean[n].r/1.5f) > m_Mean[(n-8)%m_FilterLength].r &&
                     //(m_Mean[n].r/1.5f) > m_Mean[(n+8)%m_FilterLength].r )
                 {
-                    m_Out0[n-2].r = 0.f;
-                    m_Out0[n-2].i = 0.f;
                     m_Out0[n-1].r = 0.f;
                     m_Out0[n-1].i = 0.f;
                     m_Out0[n  ].r = 0.f;
                     m_Out0[n  ].i = 0.f;
                     m_Out0[n+1].r = 0.f;
                     m_Out0[n+1].i = 0.f;
-                    m_Out0[n+2].r = 0.f;
-                    m_Out0[n+2].i = 0.f;
                 }
             }
         }
@@ -230,7 +224,7 @@ ComplexSample FirFilter::update( ComplexSample input )
             m_Out2[n].i *= m_CoefficientsFFT[n].i;
 
 #if 1
-            if( m_DeHummSet )
+            //if( m_DeHummSet )
             {
                 float amplitude = sqrtf( m_Out2[n].r * m_Out2[n].r + m_Out2[n].i * m_Out2[n].i );
                 m_Mean[n].r = m_Mean[n].r * 0.99 + 0.01 * amplitude;
@@ -242,7 +236,7 @@ ComplexSample FirFilter::update( ComplexSample input )
 #endif
         }
 
-        if( m_DeHummSet )
+        //if( m_DeHummSet )
         {
             float mean = 0.f;
             float max  = 0.f;
@@ -260,16 +254,16 @@ ComplexSample FirFilter::update( ComplexSample input )
             {
                 float amplitude = sqrtf( m_Out2[n].r * m_Out2[n].r + m_Out2[n].i * m_Out2[n].i );
 
-                amplitude -= m_Mean[n  ].r*0.25;
+                amplitude -= m_Mean[n  ].r*m_DNRLevel;
 
                 amplitude  = (amplitude < 0.f)? 0.f:amplitude;
 
                 m_Out2[n].r = amplitude*sinf(m_Mean[n].i);
                 m_Out2[n].i = amplitude*cosf(m_Mean[n].i);
 
-                if(1)
-                if( (m_Mean[n].r/1.5f) > m_Mean[(n-3)%m_FilterLength].r &&
-                    (m_Mean[n].r/1.5f) > m_Mean[(n+3)%m_FilterLength].r )//&&
+                //if(0)
+                if( (m_Mean[n].r*m_ANFLevel) > m_Mean[(n-3)%m_FilterLength].r &&
+                    (m_Mean[n].r*m_ANFLevel) > m_Mean[(n+3)%m_FilterLength].r )//&&
                     //(m_Mean[n].r/1.5f) > m_Mean[(n-4)%m_FilterLength].r &&
                     //(m_Mean[n].r/1.5f) > m_Mean[(n+4)%m_FilterLength].r &&
                     //(m_Mean[n].r/1.5f) > m_Mean[(n-5)%m_FilterLength].r &&
@@ -281,16 +275,12 @@ ComplexSample FirFilter::update( ComplexSample input )
                     //(m_Mean[n].r/1.5f) > m_Mean[(n-8)%m_FilterLength].r &&
                     //(m_Mean[n].r/1.5f) > m_Mean[(n+8)%m_FilterLength].r )
                 {
-                    m_Out2[n-2].r = 0.f;
-                    m_Out2[n-2].i = 0.f;
                     m_Out2[n-1].r = 0.f;
                     m_Out2[n-1].i = 0.f;
                     m_Out2[n  ].r = 0.f;
                     m_Out2[n  ].i = 0.f;
                     m_Out2[n+1].r = 0.f;
                     m_Out2[n+1].i = 0.f;
-                    m_Out2[n+2].r = 0.f;
-                    m_Out2[n+2].i = 0.f;
                 }
             }
         }

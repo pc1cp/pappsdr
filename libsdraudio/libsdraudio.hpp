@@ -142,6 +142,9 @@ class SDRAudio
 
     void   setAGCTime( double upTime, double downTime );
 
+    void   setANF( double value );
+    void   setDNR( double value );
+
     private:
     SDRAudio();
     bool update( ComplexSample& input, ComplexSample& output );

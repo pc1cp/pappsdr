@@ -1,5 +1,7 @@
 #include "spinctrl.hpp"
 
+const wxEventType wxEVT_CUSTOM_SPINCTRL = wxNewEventType();
+
 enum
 {
     ID_SPIN_UP,
@@ -111,6 +113,11 @@ void wxCustomSpinCtrl::onSpinUp( wxSpinEvent& WXUNUSED(event) )
     wxSpinEvent event;
     event.SetId( m_ID );
     m_Parent->GetEventHandler()->AddPendingEvent( event );
+    std::cerr << "wxSpinEvent sent.\n";
+
+    wxCommandEvent cmdEvent(wxEVT_CUSTOM_SPINCTRL);
+    cmdEvent.SetId( m_ID );
+    m_Parent->GetEventHandler()->AddPendingEvent( cmdEvent );
 }
 
 void wxCustomSpinCtrl::onSpinDown( wxSpinEvent& WXUNUSED(event) )
@@ -126,6 +133,12 @@ void wxCustomSpinCtrl::onSpinDown( wxSpinEvent& WXUNUSED(event) )
     wxSpinEvent event;
     event.SetId( m_ID );
     m_Parent->GetEventHandler()->AddPendingEvent( event );
+
+    wxCommandEvent cmdEvent(wxEVT_CUSTOM_SPINCTRL);
+    cmdEvent.SetId( m_ID );
+    m_Parent->GetEventHandler()->AddPendingEvent( cmdEvent );
+
+    std::cerr << "wxSpinEvent sent.\n";
 }
 
 void wxCustomSpinCtrl::onTextEnter( wxCommandEvent& WXUNUSED( event ) )
@@ -138,6 +151,10 @@ void wxCustomSpinCtrl::onTextEnter( wxCommandEvent& WXUNUSED( event ) )
         wxSpinEvent event;
         event.SetId( m_ID );
         m_Parent->GetEventHandler()->AddPendingEvent( event );
+
+        wxCommandEvent cmdEvent(wxEVT_CUSTOM_SPINCTRL);
+        cmdEvent.SetId( m_ID );
+        m_Parent->GetEventHandler()->AddPendingEvent( cmdEvent );
     }
     printValue( m_Value );
 }

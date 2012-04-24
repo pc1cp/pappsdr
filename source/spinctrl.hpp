@@ -4,15 +4,17 @@
 #include "wx/wx.h"
 #include "wx/spinbutt.h"
 
+extern const wxEventType wxEVT_CUSTOM_SPINCTRL;
+
 class wxCustomSpinCtrl : public wxPanel
 {
     public:
 
-    wxCustomSpinCtrl( wxWindow*         parent, 
-                      wxWindowID        id        =      -1, 
-                      float             min       = -100.0f, 
-                      float             max       = +100.0f, 
-                      float             initial   =    0.0f, 
+    wxCustomSpinCtrl( wxWindow*         parent,
+                      wxWindowID        id        =      -1,
+                      float             min       = -100.0f,
+                      float             max       = +100.0f,
+                      float             initial   =    0.0f,
                       float             increment =    1.0f,
                       int               digits    =       2,
                       const wxString&   name      = _T("wxSpinCtrl") );

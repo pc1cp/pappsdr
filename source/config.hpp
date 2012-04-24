@@ -73,6 +73,9 @@ class ConfigRegistry
     void    setXTalPPM( double value ){ m_PappradioXTALPPM = value; }
     double  getXTalPPM() { return m_PappradioXTALPPM; }
 
+    void   setAttValue( int index, double valueDB ){ m_AttenuatorRealDB[index&3] = valueDB;};
+    double getAttValue( int index ){ return ( m_AttenuatorRealDB[index&3] ); }
+
     private:
 
     void        loadSettings()
@@ -94,15 +97,15 @@ class ConfigRegistry
                         ( &m_AttenuatorRealDB[0] );
 
         m_Config->Read( _("PappradioAtt10dB"),
-                        _("-10.0")           ).ToDouble
+                        _("-12.0")           ).ToDouble
                         ( &m_AttenuatorRealDB[1] );
 
         m_Config->Read( _("PappradioAtt20dB"),
-                        _("-20.0")           ).ToDouble
+                        _("-24.0")           ).ToDouble
                         ( &m_AttenuatorRealDB[2] );
 
         m_Config->Read( _("PappradioAtt30dB"),
-                        _("-30.0")           ).ToDouble
+                        _("-36.0")           ).ToDouble
                         ( &m_AttenuatorRealDB[3] );
 
         m_AudioInputDevice.Name  = m_Config->Read( _("AudioInputDeviceName"),
@@ -205,8 +208,14 @@ class GlobalConfig
 
     void setATTdB  ( double AttenuatorValue );
 
+    void   setAttValue( int index, double valueDB ){ m_Registry.setAttValue( index, valueDB ); };
+    double getAttValue( int index ){ return ( m_Registry.getAttValue( index ) ); }
+
     void  setSLevelCorrection( float dBValue ){ m_SLevelCorrection=dBValue; }
     float getSLevelCorrection(){ return m_SLevelCorrection; }
+
+    void  setANF( double value );
+    void  setDNR( double value );
 
     AudioQueue* getFFTQueueRF();
     AudioQueue* getFFTQueueAF();

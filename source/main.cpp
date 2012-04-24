@@ -60,6 +60,12 @@ class MyFrame : public wxFrame
     void onButtonPreCustom2 ( wxCommandEvent& event );
     void onButtonPreCustom3 ( wxCommandEvent& event );
 
+    void onButtonANFOFF     ( wxCommandEvent& event );
+    void onButtonANFON      ( wxCommandEvent& event );
+
+    void onButtonDNROFF     ( wxCommandEvent& event );
+    void onButtonDNRON      ( wxCommandEvent& event );
+
     void onClose            ( wxCloseEvent& event );
 
     private:
@@ -116,6 +122,12 @@ class MyFrame : public wxFrame
     wxCustomPushButton* m_PushButtonAGC500;
     wxCustomPushButton* m_PushButtonAGC250;
 
+    wxCustomPushButton* m_PushButtonANFOff;
+    wxCustomPushButton* m_PushButtonANFOn;
+
+    wxCustomPushButton* m_PushButtonDNROff;
+    wxCustomPushButton* m_PushButtonDNROn;
+
     wxLogWindow*        m_LogWindow;
     Pappradio*          m_Pappradio;
     AudioThread*        m_AudioThread;
@@ -162,6 +174,12 @@ enum
     BUTTON_PRE_CUSTOM1,
     BUTTON_PRE_CUSTOM2,
     BUTTON_PRE_CUSTOM3,
+
+    BUTTON_ANF_ON,
+    BUTTON_ANF_OFF,
+
+    BUTTON_DNR_ON,
+    BUTTON_DNR_OFF,
 };
 
 BEGIN_EVENT_TABLE(MyFrame, wxFrame)
@@ -208,6 +226,12 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_BUTTON (BUTTON_PRE_CUSTOM1, MyFrame::onButtonPreCustom1 )
     EVT_BUTTON (BUTTON_PRE_CUSTOM2, MyFrame::onButtonPreCustom2 )
     EVT_BUTTON (BUTTON_PRE_CUSTOM3, MyFrame::onButtonPreCustom3 )
+
+    EVT_BUTTON (BUTTON_ANF_ON , MyFrame::onButtonANFON  )
+    EVT_BUTTON (BUTTON_ANF_OFF, MyFrame::onButtonANFOFF )
+
+    EVT_BUTTON (BUTTON_DNR_ON , MyFrame::onButtonDNRON  )
+    EVT_BUTTON (BUTTON_DNR_OFF, MyFrame::onButtonDNROFF )
 
 END_EVENT_TABLE()
 
@@ -422,6 +446,18 @@ MyFrame::MyFrame(const wxString& title, Pappradio* pappradio, wxLogWindow* logwi
     BoxSizer3->Add( m_PreSeparator );
     BoxSizer3->Add( preselBox );
 
+    wxBoxSizer* dspBox = new wxBoxSizer( wxHORIZONTAL );
+    m_PushButtonANFOn  = new wxCustomPushButton( this, BUTTON_ANF_ON,  _("ANF-ON"),  false );
+    m_PushButtonANFOff = new wxCustomPushButton( this, BUTTON_ANF_OFF, _("ANF-OFF"), false );
+    m_PushButtonDNROn  = new wxCustomPushButton( this, BUTTON_DNR_ON,  _("DNR-ON"),  false );
+    m_PushButtonDNROff = new wxCustomPushButton( this, BUTTON_DNR_OFF, _("DNR-OFF"), false );
+
+    dspBox->Add( m_PushButtonANFOff );
+    dspBox->Add( m_PushButtonANFOn  );
+    dspBox->Add( m_PushButtonDNROff );
+    dspBox->Add( m_PushButtonDNROn  );
+    audioBox->Add( dspBox );
+
     BoxSizer2->Add( BoxSizer3 );
     BoxSizer2->Add( audioBox );
 
@@ -461,10 +497,16 @@ MyFrame::MyFrame(const wxString& title, Pappradio* pappradio, wxLogWindow* logwi
     m_PushButtonAGC500 ->setValue(false);
     m_PushButtonAGC250 ->setValue(true );
 
+    config->setANF( 0.0 );
+    m_PushButtonANFOff->setValue( true );
+
+    config->setDNR( 0.0 );
+    m_PushButtonDNROff->setValue( true );
+
     SetSizerAndFit(BoxSizer1);
     Layout();
 
-    config->setSLevelCorrection( -30.0 );
+    config->setSLevelCorrection( 0.0 );
 }
 
 MyFrame::~MyFrame()
@@ -611,53 +653,54 @@ void MyFrame::onButtonFM(wxCommandEvent& WXUNUSED(event))
 void MyFrame::onButtonAtt00(wxCommandEvent& WXUNUSED(event))
 {
     GlobalConfig* config = GlobalConfig::getInstance();
-    config->setATTdB( 0 );
+
+    config->setATTdB( config->getAttValue( 0 ) );
 
     m_Pappradio->setAttenuator( Pappradio::ATT00 );
     m_PushButtonATT00->setValue(true );
     m_PushButtonATT10->setValue(false);
     m_PushButtonATT20->setValue(false);
     m_PushButtonATT30->setValue(false);
-    m_LCDisplay->setAttenuatorValue( 0.0 );
+//    m_LCDisplay->setAttenuatorValue( 0.0 );
 }
 
 void MyFrame::onButtonAtt10(wxCommandEvent& WXUNUSED(event))
 {
     GlobalConfig* config = GlobalConfig::getInstance();
-    config->setATTdB( -10 );
+    config->setATTdB( config->getAttValue( 1 ) );
 
     m_Pappradio->setAttenuator( Pappradio::ATT10 );
     m_PushButtonATT00->setValue(false);
     m_PushButtonATT10->setValue(true );
     m_PushButtonATT20->setValue(false);
     m_PushButtonATT30->setValue(false);
-    m_LCDisplay->setAttenuatorValue( -10.0 );
+//    m_LCDisplay->setAttenuatorValue( -10.0 );
 }
 
 void MyFrame::onButtonAtt20(wxCommandEvent& WXUNUSED(event))
 {
     GlobalConfig* config = GlobalConfig::getInstance();
-    config->setATTdB( -20 );
+    config->setATTdB( config->getAttValue( 2 ) );
 
     m_Pappradio->setAttenuator( Pappradio::ATT20 );
     m_PushButtonATT00->setValue(false);
     m_PushButtonATT10->setValue(false);
     m_PushButtonATT20->setValue(true );
     m_PushButtonATT30->setValue(false);
-    m_LCDisplay->setAttenuatorValue( -20.0 );
+//    m_LCDisplay->setAttenuatorValue( -20.0 );
 }
 
 void MyFrame::onButtonAtt30(wxCommandEvent& WXUNUSED(event))
 {
     GlobalConfig* config = GlobalConfig::getInstance();
-    config->setATTdB( -30 );
+    config->setATTdB( config->getAttValue( 3 ) );
 
     m_Pappradio->setAttenuator( Pappradio::ATT30 );
     m_PushButtonATT00->setValue(false);
     m_PushButtonATT10->setValue(false);
     m_PushButtonATT20->setValue(false);
     m_PushButtonATT30->setValue(true );
-    m_LCDisplay->setAttenuatorValue( -30.0 );
+//    m_LCDisplay->setAttenuatorValue( -30.0 );
 }
 
 void MyFrame::onButtonFlt0500(wxCommandEvent& WXUNUSED(event))
@@ -966,6 +1009,38 @@ void MyFrame::OnLoFreqChanged( wxCommandEvent& WXUNUSED(event) )
     m_FFTDisplayRF->setLO( m_LCDisplay->getLOFreqDisplay() );
 
     std::cerr << "Real-f : " << m_Pappradio->getFrequency() << "\n";
+}
+
+void MyFrame::onButtonANFOFF( wxCommandEvent& WXUNUSED(event) )
+{
+    GlobalConfig* config = GlobalConfig::getInstance();
+    config->setANF( 0.0 );
+    m_PushButtonANFOff->setValue(true);
+    m_PushButtonANFOn ->setValue(false);
+}
+
+void MyFrame::onButtonANFON( wxCommandEvent& WXUNUSED(event) )
+{
+    GlobalConfig* config = GlobalConfig::getInstance();
+    config->setANF( 0.5 );
+    m_PushButtonANFOff->setValue(false);
+    m_PushButtonANFOn ->setValue(true );
+}
+
+void MyFrame::onButtonDNROFF( wxCommandEvent& WXUNUSED(event) )
+{
+    GlobalConfig* config = GlobalConfig::getInstance();
+    config->setDNR( 0.0 );
+    m_PushButtonDNROff->setValue(true);
+    m_PushButtonDNROn ->setValue(false);
+}
+
+void MyFrame::onButtonDNRON( wxCommandEvent& WXUNUSED(event) )
+{
+    GlobalConfig* config = GlobalConfig::getInstance();
+    config->setDNR( 0.3333 );
+    m_PushButtonDNROff->setValue(false);
+    m_PushButtonDNROn ->setValue(true);
 }
 
 void MyFrame::OnFreqChanged( wxCommandEvent& WXUNUSED(event) )

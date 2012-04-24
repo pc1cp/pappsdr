@@ -373,6 +373,24 @@ void GlobalConfig::setMode( SDRAudio::SDR_MODE mode )
     }
 }
 
+void GlobalConfig::setANF( double value )
+{
+    if( m_AudioThread and
+		m_AudioThread->IsRunning())
+    {
+        m_AudioThread->setANF( value );
+    }
+}
+
+void GlobalConfig::setDNR( double value )
+{
+    if( m_AudioThread and
+		m_AudioThread->IsRunning())
+    {
+        m_AudioThread->setDNR( value );
+    }
+}
+
 float GlobalConfig::getSignalLevel()
 {
     if( m_AudioThread and

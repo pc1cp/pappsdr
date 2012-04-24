@@ -43,6 +43,9 @@ class AudioThread: public wxThread
     float       getSquelchLevel ();
     void        setSquelchLevel (float level);
 
+    void        setANF( double value );
+    void        setDNR( double value );
+
     double  getSampleRate();
 
     private:

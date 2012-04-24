@@ -508,3 +508,21 @@ void AudioThread::setAGCTime( double upTime, double downTime )
         wxLogStatus( _("AGC-Uptime = %f"), upTime );
     }
 }
+
+void AudioThread::setANF( double value )
+{
+	wxMutexLocker lock( m_ThreadMutex );
+    if( m_SDRAudio )
+    {
+        m_SDRAudio->setANF( value );
+    }
+}
+
+void AudioThread::setDNR( double value )
+{
+	wxMutexLocker lock( m_ThreadMutex );
+    if( m_SDRAudio )
+    {
+        m_SDRAudio->setDNR( value );
+    }
+}

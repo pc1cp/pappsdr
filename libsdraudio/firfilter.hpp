@@ -38,14 +38,17 @@ class FirFilter
    ~FirFilter();
 
     void setBandwidth( double f0, double f1 = 0 );
-    void setDeHumm   ();
+
+    void setANF   (double value){m_ANFLevel = value;}
+    void setDNR   (double value){m_DNRLevel = value;}
 
     ComplexSample update( ComplexSample input );
 
     private:
     FirFilter();
 
-    bool             m_DeHummSet;
+    double           m_ANFLevel;
+    double           m_DNRLevel;
 
     int              m_FilterLength;
     double           m_SampleRate;
