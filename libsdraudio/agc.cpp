@@ -100,8 +100,8 @@ ComplexSample AutomaticGainControl::update( ComplexSample& input )
         m_LimitGain = m_LimitLevel / m_Level;
     }
 
-    m_LimitGain = (m_LimitGain <        0.1f)?        0.1f:m_LimitGain;
-    m_LimitGain = (m_LimitGain > 10000000.0f)? 10000000.0f:m_LimitGain;
+    m_LimitGain = (m_LimitGain <        0.01f)?        0.01f:m_LimitGain;
+    m_LimitGain = (m_LimitGain > 100000000.0f)? 100000000.0f:m_LimitGain;
 
     float const targetGain = (m_TargetLevel/m_Level);
 
