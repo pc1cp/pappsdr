@@ -201,7 +201,7 @@ void    AudioThread::Configure()
         memset( &m_PaParametersOut, 0, sizeof( m_PaParametersOut ) );
 
         double inputLatency  = Pa_GetDeviceInfo( PortaudioDeviceIndexOut )
-                               ->defaultLowInputLatency;
+                               ->defaultHighInputLatency;
         double outputLatency = inputLatency;
 
         std::cerr << "default-Latency-In : " <<  inputLatency*m_SampleRate << "\n";
@@ -225,8 +225,8 @@ void    AudioThread::Configure()
                                  &m_PaParametersIn,
                                  &m_PaParametersOut,
                                  m_SampleRate,
-                                 m_FramesPerBuffer,
-                                 paNoFlag,
+                                 paFramesPerBufferUnspecified,//m_FramesPerBuffer,
+                                 paNeverDropInput,//paNoFlag,
                                  &(this->PaCallback),
                                  (void *)this );
 
