@@ -76,6 +76,18 @@ class ConfigRegistry
     void   setAttValue( int index, double valueDB ){ m_AttenuatorRealDB[index&3] = valueDB;};
     double getAttValue( int index ){ return ( m_AttenuatorRealDB[index&3] ); }
 
+    void    setCurrentAttenuator( int index ){ m_AttenuatorIndex = (int)index; }
+    int     getCurrentAttenuator(){ return ( (int)m_AttenuatorIndex ); }
+
+    void    setCurrentMode( int index ){ m_ModeIndex = (int)index; }
+    int     getCurrentMode(){ return ( (int)m_ModeIndex ); }
+
+    void    setCurrentLOFrequency( double frequency ){ m_LOFrequency = frequency; }
+    int     getCurrentLOFrequency(){ return ( m_LOFrequency ); }
+
+    void    setCurrentVFOFrequency( double frequency ){ m_VFOFrequency = frequency; }
+    int     getCurrentVFOFrequency(){ return ( m_VFOFrequency ); }
+
     private:
 
     void        loadSettings()
@@ -107,6 +119,22 @@ class ConfigRegistry
         m_Config->Read( _("PappradioAtt30dB"),
                         _("-36.0")           ).ToDouble
                         ( &m_AttenuatorRealDB[3] );
+
+        m_Config->Read( _("CurrentAttenuatorIndex"),
+                        _("3")                     ).ToLong
+                        ( &m_AttenuatorIndex );
+
+        m_Config->Read( _("CurrentModeIndex"),
+                        _("1")               ).ToLong
+                        ( &m_ModeIndex );
+
+        m_Config->Read( _("CurrentLOFrequency"),
+                        _("7100000")           ).ToDouble
+                        ( &m_LOFrequency );
+
+        m_Config->Read( _("CurrentVFOFrequency"),
+                        _("10000")              ).ToDouble
+                        ( &m_VFOFrequency );
 
         m_AudioInputDevice.Name  = m_Config->Read( _("AudioInputDeviceName"),
                                                    _("") );
@@ -140,6 +168,18 @@ class ConfigRegistry
         valueString.Printf( _("%f"), m_AttenuatorRealDB[3] );
         m_Config->Write( _("PappradioAtt30dB"), valueString );
 
+        valueString.Printf( _("%i"), m_AttenuatorIndex );
+        m_Config->Write( _("CurrentAttenuatorIndex"), valueString );
+
+        valueString.Printf( _("%i"), m_ModeIndex );
+        m_Config->Write( _("CurrentModeIndex"), valueString );
+
+        valueString.Printf( _("%f"), m_LOFrequency );
+        m_Config->Write( _("CurrentLOFrequency"), valueString );
+
+        valueString.Printf( _("%f"), m_VFOFrequency );
+        m_Config->Write( _("CurrentVFOFrequency"), valueString );
+
         m_Config->Write( _("AudioInputDeviceName"),
                          m_AudioInputDevice.Name );
 
@@ -156,6 +196,12 @@ class ConfigRegistry
     // Audio-Sample-Rate and Sample-Rate-Error in PPM -------------------------
     double                              m_AudioSampleRate;
     double                              m_AudioSampleRateErrorPPM;
+
+    // Last used state --------------------------------------------------------
+    double                              m_LOFrequency;
+    double                              m_VFOFrequency;
+    long                                m_AttenuatorIndex;
+    long                                m_ModeIndex;
 
     // Tuning-Error due to XTAL-Frequency-Deviation in PPM --------------------
     double                              m_PappradioXTALPPM;
@@ -233,6 +279,18 @@ class GlobalConfig
 
     void        setXTalPPM( double ppm ){ m_Registry.setXTalPPM( ppm ); }
     double      getXTalPPM( ){ return ( m_Registry.getXTalPPM() ); }
+
+    void        setCurrentAttenuator( int index ){ m_Registry.setCurrentAttenuator(index); }
+    int         getCurrentAttenuator(){ return ( m_Registry.getCurrentAttenuator() ); }
+
+    void        setCurrentMode( int index ){ m_Registry.setCurrentMode(index); }
+    int         getCurrentMode(){ return ( m_Registry.getCurrentMode() ); }
+
+    void        setCurrentLOFrequency( double frequency ){ m_Registry.setCurrentLOFrequency(frequency); }
+    int         getCurrentLOFrequency(){ return ( m_Registry.getCurrentLOFrequency() ); }
+
+    void        setCurrentVFOFrequency( double frequency ){ m_Registry.setCurrentVFOFrequency(frequency); }
+    int         getCurrentVFOFrequency(){ return ( m_Registry.getCurrentVFOFrequency() ); }
 
     private:
 

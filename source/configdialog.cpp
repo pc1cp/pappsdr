@@ -249,7 +249,7 @@ wxPanel* wxCustomConfigDialog::createHardwarePage( wxBookCtrlBase* parent )
            ) );
     hintText->Wrap( 500 );
 
-    wxGridSizer* attGrid = new wxGridSizer( 2, 4 );
+    wxGridSizer* attGrid = new wxGridSizer( 2 );
 
     attGrid->Add( new wxStaticText( page, wxID_ANY, _("Attenuation-Correction (OFF)") ), 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL );
     attGrid->Add( m_Att00Spin, 0, wxEXPAND|wxALL, 0 );

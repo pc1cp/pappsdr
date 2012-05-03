@@ -69,6 +69,10 @@ class MyFrame : public wxFrame
     void onClose            ( wxCloseEvent& event );
 
     private:
+
+    void updatePreselector();
+    void updateFrequencyDisplay();
+
     wxCustomLCDisplay*  m_LCDisplay;
     wxCustomFFTDisplay* m_FFTDisplayRF;
     wxCustomFFTDisplay* m_FFTDisplayAF;
@@ -247,13 +251,6 @@ bool MyApp::OnInit()
 
     m_Pappradio = new Pappradio;
 
-    GlobalConfig* config = GlobalConfig::getInstance();
-    config->startAudioThread();
-	wxLogStatus( _("Audiothread started.") );
-
-    MyFrame *frame = new MyFrame( wxT("Pappradio SDR"), m_Pappradio, m_LogWindow );
-    frame->Show(true);
-
     enum Pappradio::ERRORS result;
 
     // try loading the fqdata.dat from various locations
@@ -291,10 +288,17 @@ bool MyApp::OnInit()
         //return false;
     }
 
-    m_Pappradio->setFilter( Pappradio::BP_04000_07500 );
+    //m_Pappradio->setFilter( Pappradio::BP_04000_07500 );
     //m_Pappradio->setFilter( Pappradio::BP_02400_04000 );
-    m_Pappradio->setAttenuator( Pappradio::ATT00 );
+    //m_Pappradio->setAttenuator( Pappradio::ATT00 );
     //m_Pappradio->setFrequency( 7100000 );
+
+    GlobalConfig* config = GlobalConfig::getInstance();
+    config->startAudioThread();
+	wxLogStatus( _("Audiothread started.") );
+
+    MyFrame *frame = new MyFrame( wxT("Pappradio SDR"), m_Pappradio, m_LogWindow );
+    frame->Show(true);
 
     return true;
 }
@@ -469,12 +473,125 @@ MyFrame::MyFrame(const wxString& title, Pappradio* pappradio, wxLogWindow* logwi
 
     GlobalConfig* config = GlobalConfig::getInstance();
 
-    config->setMode( SDRAudio::SDR_MODE_LSB );
-    m_PushButtonCW ->setValue(false);
-    m_PushButtonLSB->setValue(true );
-    m_PushButtonUSB->setValue(false);
-    m_PushButtonAM ->setValue(false);
-    m_PushButtonFM ->setValue(false);
+    // -----------------------------------------------------------------------
+    // get stored mode from config and set it
+    // -----------------------------------------------------------------------
+
+    switch( (enum SDRAudio::SDR_MODE)(config->getCurrentMode()) )
+    {
+        case SDRAudio::SDR_MODE_CW:
+        {
+            config->setMode( SDRAudio::SDR_MODE_CW );
+            m_PushButtonCW ->setValue(true );
+            m_PushButtonLSB->setValue(false);
+            m_PushButtonUSB->setValue(false);
+            m_PushButtonAM ->setValue(false);
+            m_PushButtonFM ->setValue(false);
+            break;
+        }
+        case SDRAudio::SDR_MODE_LSB:
+        {
+            config->setMode( SDRAudio::SDR_MODE_LSB );
+            m_PushButtonCW ->setValue(false);
+            m_PushButtonLSB->setValue(true );
+            m_PushButtonUSB->setValue(false);
+            m_PushButtonAM ->setValue(false);
+            m_PushButtonFM ->setValue(false);
+            break;
+        }
+        case SDRAudio::SDR_MODE_USB:
+        {
+            config->setMode( SDRAudio::SDR_MODE_USB );
+            m_PushButtonCW ->setValue(false);
+            m_PushButtonLSB->setValue(false);
+            m_PushButtonUSB->setValue(true );
+            m_PushButtonAM ->setValue(false);
+            m_PushButtonFM ->setValue(false);
+            break;
+        }
+        case SDRAudio::SDR_MODE_AM:
+        {
+            config->setMode( SDRAudio::SDR_MODE_AM );
+            m_PushButtonCW ->setValue(false);
+            m_PushButtonLSB->setValue(false);
+            m_PushButtonUSB->setValue(false);
+            m_PushButtonAM ->setValue(true );
+            m_PushButtonFM ->setValue(false);
+            break;
+        }
+        case SDRAudio::SDR_MODE_FM:
+        {
+            config->setMode( SDRAudio::SDR_MODE_FM );
+            m_PushButtonCW ->setValue(false);
+            m_PushButtonLSB->setValue(false);
+            m_PushButtonUSB->setValue(false);
+            m_PushButtonAM ->setValue(false);
+            m_PushButtonFM ->setValue(true );
+            break;
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // get LO- and VFO-frequency from config and set it
+    // -----------------------------------------------------------------------
+
+    double frequencyLO  = config->getCurrentLOFrequency();
+    double frequencyVFO = config->getCurrentVFOFrequency();
+
+    m_Pappradio->setFrequency( frequencyLO );
+    config->setTune( frequencyVFO );
+    m_LCDisplay->setLOFreq( (int)floor(0.5+frequencyLO/1000.0 )*1000 );
+    m_LCDisplay->setFreq  ( (int)floor(0.5+frequencyVFO       )      );
+    updatePreselector();
+    updateFrequencyDisplay();
+
+    // -----------------------------------------------------------------------
+    // get Attenuator-Index from config and set it
+    // -----------------------------------------------------------------------
+
+    switch( (enum Pappradio::ATTENUATORS)config->getCurrentAttenuator() )
+    {
+        case Pappradio::ATT00:
+        {
+            m_PushButtonATT00->setValue( true  );
+            m_PushButtonATT10->setValue( false );
+            m_PushButtonATT20->setValue( false );
+            m_PushButtonATT30->setValue( false );
+            m_Pappradio->setAttenuator( Pappradio::ATT00 );
+            config->setATTdB( config->getAttValue( 0 ) );
+            break;
+        }
+        case Pappradio::ATT10:
+        {
+            m_PushButtonATT00->setValue( false );
+            m_PushButtonATT10->setValue( true  );
+            m_PushButtonATT20->setValue( false );
+            m_PushButtonATT30->setValue( false );
+            m_Pappradio->setAttenuator( Pappradio::ATT10 );
+            config->setATTdB( config->getAttValue( 1 ) );
+            break;
+        }
+        case Pappradio::ATT20:
+        {
+            m_PushButtonATT00->setValue( false );
+            m_PushButtonATT10->setValue( false );
+            m_PushButtonATT20->setValue( true  );
+            m_PushButtonATT30->setValue( false );
+            m_Pappradio->setAttenuator( Pappradio::ATT20 );
+            config->setATTdB( config->getAttValue( 2 ) );
+            break;
+        }
+        case Pappradio::ATT30:
+        {
+            m_PushButtonATT00->setValue( false );
+            m_PushButtonATT10->setValue( false );
+            m_PushButtonATT20->setValue( false );
+            m_PushButtonATT30->setValue( true  );
+            m_Pappradio->setAttenuator( Pappradio::ATT30 );
+            config->setATTdB( config->getAttValue( 3 ) );
+            break;
+        }
+    }
 
     config->setFilter( 2500 );
     m_PushButtonFlt0500->setValue(false);
@@ -525,6 +642,8 @@ void MyFrame::onButtonCW(wxCommandEvent& WXUNUSED(event))
     GlobalConfig* config = GlobalConfig::getInstance();
 
     config->setMode( SDRAudio::SDR_MODE_CW );
+    config->setCurrentMode( (int)SDRAudio::SDR_MODE_CW );
+
     m_PushButtonCW ->setValue(true );
     m_PushButtonLSB->setValue(false);
     m_PushButtonUSB->setValue(false);
@@ -551,6 +670,8 @@ void MyFrame::onButtonLSB(wxCommandEvent& WXUNUSED(event))
     GlobalConfig* config = GlobalConfig::getInstance();
 
     config->setMode( SDRAudio::SDR_MODE_LSB );
+    config->setCurrentMode( (int)SDRAudio::SDR_MODE_LSB );
+
     m_PushButtonCW ->setValue(false);
     m_PushButtonLSB->setValue(true );
     m_PushButtonUSB->setValue(false);
@@ -577,6 +698,8 @@ void MyFrame::onButtonUSB(wxCommandEvent& WXUNUSED(event))
     GlobalConfig* config = GlobalConfig::getInstance();
 
     config->setMode( SDRAudio::SDR_MODE_USB );
+    config->setCurrentMode( (int)SDRAudio::SDR_MODE_USB );
+
     m_PushButtonCW ->setValue(false);
     m_PushButtonLSB->setValue(false);
     m_PushButtonUSB->setValue(true );
@@ -603,6 +726,8 @@ void MyFrame::onButtonAM(wxCommandEvent& WXUNUSED(event))
     GlobalConfig* config = GlobalConfig::getInstance();
 
     config->setMode( SDRAudio::SDR_MODE_AM );
+    config->setCurrentMode( (int)SDRAudio::SDR_MODE_AM );
+
     m_PushButtonCW ->setValue(false);
     m_PushButtonLSB->setValue(false);
     m_PushButtonUSB->setValue(false);
@@ -629,6 +754,8 @@ void MyFrame::onButtonFM(wxCommandEvent& WXUNUSED(event))
     GlobalConfig* config = GlobalConfig::getInstance();
 
     config->setMode( SDRAudio::SDR_MODE_FM );
+    config->setCurrentMode( (int)SDRAudio::SDR_MODE_FM );
+
     m_PushButtonCW ->setValue(false);
     m_PushButtonLSB->setValue(false);
     m_PushButtonUSB->setValue(false);
@@ -919,15 +1046,8 @@ void MyFrame::onButtonFlt6000(wxCommandEvent& WXUNUSED(event))
     m_PushButtonFlt6000->setValue(true );
 }
 
-void MyFrame::OnLoFreqChanged( wxCommandEvent& WXUNUSED(event) )
+void MyFrame::updatePreselector()
 {
-    GlobalConfig* config = GlobalConfig::getInstance();
-
-    std::cerr << "LO-Changed\n";
-    std::cerr << "Target-f : " << m_LCDisplay->getLOFreq() << "\n";
-    m_Pappradio->setFrequency( (double)m_LCDisplay->getLOFreq() );
-
-    // set Filter
     if( m_Pappradio->getFrequency() <  2400000 ||
         m_Pappradio->getFrequency() > 30000000 )
     {
@@ -997,6 +1117,11 @@ void MyFrame::OnLoFreqChanged( wxCommandEvent& WXUNUSED(event) )
         m_PushButtonPreCust2->setValue(false);
         m_PushButtonPreCust3->setValue(false);
     }
+}
+
+void MyFrame::updateFrequencyDisplay()
+{
+    GlobalConfig* config = GlobalConfig::getInstance();
 
     // update displayed LO-Frequency
     m_LCDisplay->setLOFreqDisplay( m_Pappradio->getFrequency()
@@ -1007,6 +1132,24 @@ void MyFrame::OnLoFreqChanged( wxCommandEvent& WXUNUSED(event) )
                                  m_LCDisplay->getFreq()          );
 
     m_FFTDisplayRF->setLO( m_LCDisplay->getLOFreqDisplay() );
+
+    m_FFTDisplayRF->setTune( m_LCDisplay->getFreq() );
+}
+
+void MyFrame::OnLoFreqChanged( wxCommandEvent& WXUNUSED(event) )
+{
+    GlobalConfig* config = GlobalConfig::getInstance();
+
+    std::cerr << "LO-Changed\n";
+    std::cerr << "Target-f : " << m_LCDisplay->getLOFreq() << "\n";
+    m_Pappradio->setFrequency( (double)m_LCDisplay->getLOFreq() );
+    config->setCurrentLOFrequency( m_Pappradio->getFrequency() );
+
+    // update filter settings
+    updatePreselector();
+
+    // update displayed frequencies
+    updateFrequencyDisplay();
 
     std::cerr << "Real-f : " << m_Pappradio->getFrequency() << "\n";
 }
@@ -1047,11 +1190,11 @@ void MyFrame::OnFreqChanged( wxCommandEvent& WXUNUSED(event) )
 {
     GlobalConfig* config = GlobalConfig::getInstance();
 
-    m_LCDisplay->setFreqDisplay( m_LCDisplay->getLOFreqDisplay() +
-                                 m_LCDisplay->getFreq()          );
-
     config->setTune( m_LCDisplay->getFreq() );
-    m_FFTDisplayRF->setTune( m_LCDisplay->getFreq() );
+    config->setCurrentVFOFrequency( m_LCDisplay->getFreq() );
+
+    // update displayed frequencies
+    updateFrequencyDisplay();
 
     std::cerr << "Freq-Changed : " << m_LCDisplay->getFreq() << "\n";
 }
@@ -1078,6 +1221,9 @@ void MyFrame::onFFTClicked( wxCommandEvent& event )
     m_FFTDisplayRF->setTune( newTuneFrequency );
 
     std::cerr << "Freq-Changed(clicked) : " << newTuneFrequency << "\n";
+
+    config->setCurrentLOFrequency ( m_Pappradio->getFrequency() );
+    config->setCurrentVFOFrequency( m_LCDisplay->getFreq()      );
 }
 
 void MyFrame::onButtonAGC4000(wxCommandEvent& WXUNUSED(event))
