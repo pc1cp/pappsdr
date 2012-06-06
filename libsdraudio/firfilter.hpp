@@ -42,10 +42,18 @@ class FirFilter
     void setANF   (double value){m_ANFLevel = value;}
     void setDNR   (double value){m_DNRLevel = value;}
 
+    void setDeemphLevel( double value ) {m_DeemphaseAmount = value; }
+    void setDeemphFmin ( double value ) {m_DeemphaseFrequencyStart = value; }
+    void setDeemphFmax ( double value ) {m_DeemphaseFrequencyEnd   = value; }
+
     ComplexSample update( ComplexSample input );
 
     private:
     FirFilter();
+
+    volatile double           m_DeemphaseFrequencyStart;
+    volatile double           m_DeemphaseFrequencyEnd;
+    volatile double           m_DeemphaseAmount;
 
     double           m_ANFLevel;
     double           m_DNRLevel;

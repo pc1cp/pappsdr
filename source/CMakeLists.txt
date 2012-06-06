@@ -29,6 +29,10 @@ SET( SOURCES    main.hpp
 				spinctrl.cpp
 				spinctrl.hpp )
 
+IF(WIN32)
+	SET( SOURCES ${SOURCES} main.rc )
+ENDIF(WIN32)
+
 # add binary resources ...
 SET(ARTPATH "${CMAKE_CURRENT_SOURCE_DIR}/../artwork")
 SET(GENPATH "${CMAKE_CURRENT_BINARY_DIR}/generated")

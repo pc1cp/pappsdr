@@ -12,6 +12,8 @@ BEGIN_EVENT_TABLE( wxCustomLCDisplay, wxPanel )
     EVT_TIMER       ( wxID_ANY, wxCustomLCDisplay::onTimer )
     EVT_LEFT_DOWN   ( wxCustomLCDisplay::onClicked )
 	EVT_ERASE_BACKGROUND		( wxCustomLCDisplay::onErase  )
+    EVT_ENTER_WINDOW       ( wxCustomLCDisplay::onEnter )
+    EVT_LEAVE_WINDOW       ( wxCustomLCDisplay::onLeave )
 END_EVENT_TABLE()
 
 // ============================================================================
@@ -99,6 +101,8 @@ wxCustomLCDisplay::wxCustomLCDisplay( wxWindow* parent )
 
     m_Timer = new wxTimer(this, wxID_ANY);
     m_Timer->Start( 100 );
+
+    m_HasFocus = false;
 }
 
 //=============================================================================
@@ -119,6 +123,19 @@ wxCustomLCDisplay::~wxCustomLCDisplay()
     }
 }
 
+void wxCustomLCDisplay::onEnter( wxMouseEvent& WXUNUSED(event) )
+{
+    wxLogStatus( _("Entered LCDisplay-Widget. Focus Set.") );
+    this->SetFocus();
+    m_HasFocus = true;
+}
+
+void wxCustomLCDisplay::onLeave( wxMouseEvent& WXUNUSED(event) )
+{
+    wxLogStatus( _("Left LCDisplay-Widget. Focus Set.") );
+    m_Parent->SetFocus();
+    m_HasFocus = false;
+}
 
 void wxCustomLCDisplay::onErase( wxEraseEvent& WXUNUSED(event) )
 {
@@ -269,218 +286,225 @@ void wxCustomLCDisplay::OnMouseWheel( wxMouseEvent& event )
 {
     wxPoint pos = event.GetPosition();
 
-    if( pos.x > ( 20    ) && pos.y > ( 68    ) &&
-        pos.x < ( 20+ 24) && pos.y < ( 68+ 42) )
+    if( m_HasFocus )
     {
-        // first digit, LO
-        if( event.GetWheelRotation() >= 0 )
+        if( pos.x > ( 20    ) && pos.y > ( 68    ) &&
+            pos.x < ( 20+ 24) && pos.y < ( 68+ 42) )
         {
-            m_LOFrequency += 100000000;
-            wxCommandEvent _Event( wxLOFreqChanged );
-            wxPostEvent( m_Parent, _Event);
+            // first digit, LO
+            if( event.GetWheelRotation() >= 0 )
+            {
+                m_LOFrequency += 100000000;
+                wxCommandEvent _Event( wxLOFreqChanged );
+                wxPostEvent( m_Parent, _Event);
+            }
+            else
+            {
+                m_LOFrequency -= 100000000;
+                wxCommandEvent _Event( wxLOFreqChanged );
+                wxPostEvent( m_Parent, _Event);
+            }
         }
-        else
+
+        if( pos.x > ( 44    ) && pos.y > ( 68    ) &&
+            pos.x < ( 44+ 24) && pos.y < ( 68+ 42) )
         {
-            m_LOFrequency -= 100000000;
-            wxCommandEvent _Event( wxLOFreqChanged );
-            wxPostEvent( m_Parent, _Event);
+            // 2nd digit, LO
+            if( event.GetWheelRotation() >= 0 )
+            {
+                m_LOFrequency += 10000000;
+                wxCommandEvent _Event( wxLOFreqChanged );
+                wxPostEvent( m_Parent, _Event);
+            }
+            else
+            {
+                m_LOFrequency -= 10000000;
+                wxCommandEvent _Event( wxLOFreqChanged );
+                wxPostEvent( m_Parent, _Event);
+            }
+        }
+
+        if( pos.x > ( 68    ) && pos.y > ( 68    ) &&
+            pos.x < ( 68+ 24) && pos.y < ( 68+ 42) )
+        {
+            // 3rd digit, LO
+            if( event.GetWheelRotation() >= 0 )
+            {
+                m_LOFrequency += 1000000;
+                wxCommandEvent _Event( wxLOFreqChanged );
+                wxPostEvent( m_Parent, _Event);
+            }
+            else
+            {
+                m_LOFrequency -= 1000000;
+                wxCommandEvent _Event( wxLOFreqChanged );
+                wxPostEvent( m_Parent, _Event);
+            }
+        }
+
+        if( pos.x > (102    ) && pos.y > ( 68    ) &&
+            pos.x < (102+ 24) && pos.y < ( 68+ 42) )
+        {
+            // 4th digit, LO
+            if( event.GetWheelRotation() >= 0 )
+            {
+                m_LOFrequency += 100000;
+                wxCommandEvent _Event( wxLOFreqChanged );
+                wxPostEvent( m_Parent, _Event);
+            }
+            else
+            {
+                m_LOFrequency -= 100000;
+                wxCommandEvent _Event( wxLOFreqChanged );
+                wxPostEvent( m_Parent, _Event);
+            }
+        }
+
+        if( pos.x > (124    ) && pos.y > ( 68    ) &&
+            pos.x < (124+ 24) && pos.y < ( 68+ 42) )
+        {
+            // 5th digit, LO
+            if( event.GetWheelRotation() >= 0 )
+            {
+                m_LOFrequency += 10000;
+                wxCommandEvent _Event( wxLOFreqChanged );
+                wxPostEvent( m_Parent, _Event);
+            }
+            else
+            {
+                m_LOFrequency -= 10000;
+                wxCommandEvent _Event( wxLOFreqChanged );
+                wxPostEvent( m_Parent, _Event);
+            }
+        }
+
+        if( pos.x > (148    ) && pos.y > ( 68    ) &&
+            pos.x < (148+ 24) && pos.y < ( 68+ 42) )
+        {
+            // 6th digit, LO
+            if( event.GetWheelRotation() >= 0 )
+            {
+                m_LOFrequency += 1000;
+                wxCommandEvent _Event( wxLOFreqChanged );
+                wxPostEvent( m_Parent, _Event);
+            }
+            else
+            {
+                m_LOFrequency -= 1000;
+                wxCommandEvent _Event( wxLOFreqChanged );
+                wxPostEvent( m_Parent, _Event);
+            }
+        }
+
+        if( pos.x > (380    ) && pos.y > ( 68    ) &&
+            pos.x < (380+ 24) && pos.y < ( 68+ 42) )
+        {
+            // 5th digit, Tune
+            if( event.GetWheelRotation() >= 0 )
+            {
+                m_Frequency += 10000;
+                wxCommandEvent _Event( wxFreqChanged );
+                wxPostEvent( m_Parent, _Event);
+            }
+            else
+            {
+                m_Frequency -= 10000;
+                wxCommandEvent _Event( wxFreqChanged );
+                wxPostEvent( m_Parent, _Event);
+            }
+        }
+
+        if( pos.x > (404    ) && pos.y > ( 68    ) &&
+            pos.x < (404+ 24) && pos.y < ( 68+ 42) )
+        {
+            // 5th digit, Tune
+            if( event.GetWheelRotation() >= 0 )
+            {
+                m_Frequency += 1000;
+                wxCommandEvent _Event( wxFreqChanged );
+                wxPostEvent( m_Parent, _Event);
+            }
+            else
+            {
+                m_Frequency -= 1000;
+                wxCommandEvent _Event( wxFreqChanged );
+                wxPostEvent( m_Parent, _Event);
+            }
+        }
+
+        if( pos.x > (434    ) && pos.y > ( 68    ) &&
+            pos.x < (434+ 20) && pos.y < ( 68+ 42) )
+        {
+            // 5th digit, Tune
+            if( event.GetWheelRotation() >= 0 )
+            {
+                m_Frequency += 100;
+                wxCommandEvent _Event( wxFreqChanged );
+                wxPostEvent( m_Parent, _Event);
+            }
+            else
+            {
+                m_Frequency -= 100;
+                wxCommandEvent _Event( wxFreqChanged );
+                wxPostEvent( m_Parent, _Event);
+            }
+        }
+
+        if( pos.x > (454    ) && pos.y > ( 68    ) &&
+            pos.x < (454+ 20) && pos.y < ( 68+ 42) )
+        {
+            // 5th digit, Tune
+            if( event.GetWheelRotation() >= 0 )
+            {
+                m_Frequency += 10;
+                wxCommandEvent _Event( wxFreqChanged );
+                wxPostEvent( m_Parent, _Event);
+            }
+            else
+            {
+                m_Frequency -= 10;
+                wxCommandEvent _Event( wxFreqChanged );
+                wxPostEvent( m_Parent, _Event);
+            }
+        }
+
+        if( pos.x > (474    ) && pos.y > ( 68    ) &&
+            pos.x < (474+ 20) && pos.y < ( 68+ 42) )
+        {
+            // 5th digit, Tune
+            if( event.GetWheelRotation() >= 0 )
+            {
+                m_Frequency += 1;
+                wxCommandEvent _Event( wxFreqChanged );
+                wxPostEvent( m_Parent, _Event);
+            }
+            else
+            {
+                m_Frequency -= 1;
+                wxCommandEvent _Event( wxFreqChanged );
+                wxPostEvent( m_Parent, _Event);
+            }
+        }
+
+        GlobalConfig* config = GlobalConfig::getInstance();
+        double sampleRate = config->getInputSampleRate();
+
+        m_LOFrequency = m_LOFrequency <         0 ?         0:m_LOFrequency;
+        m_LOFrequency = m_LOFrequency > 999999999 ? 999999999:m_LOFrequency;
+
+        // limit tuning against current input-samplerate...
+        m_Frequency   = m_Frequency   < -sampleRate/2.0 ? -sampleRate/2.0:m_Frequency;
+        m_Frequency   = m_Frequency   > +sampleRate/2.0 ? +sampleRate/2.0:m_Frequency;
+
+        // do not allow negative Frequencies as tuning-range...
+        if( m_Frequency < -m_LOFrequencyDisplay )
+        {
+            m_Frequency = -m_LOFrequencyDisplay;
         }
     }
-
-    if( pos.x > ( 44    ) && pos.y > ( 68    ) &&
-        pos.x < ( 44+ 24) && pos.y < ( 68+ 42) )
+    else
     {
-        // 2nd digit, LO
-        if( event.GetWheelRotation() >= 0 )
-        {
-            m_LOFrequency += 10000000;
-            wxCommandEvent _Event( wxLOFreqChanged );
-            wxPostEvent( m_Parent, _Event);
-        }
-        else
-        {
-            m_LOFrequency -= 10000000;
-            wxCommandEvent _Event( wxLOFreqChanged );
-            wxPostEvent( m_Parent, _Event);
-        }
-    }
-
-    if( pos.x > ( 68    ) && pos.y > ( 68    ) &&
-        pos.x < ( 68+ 24) && pos.y < ( 68+ 42) )
-    {
-        // 3rd digit, LO
-        if( event.GetWheelRotation() >= 0 )
-        {
-            m_LOFrequency += 1000000;
-            wxCommandEvent _Event( wxLOFreqChanged );
-            wxPostEvent( m_Parent, _Event);
-        }
-        else
-        {
-            m_LOFrequency -= 1000000;
-            wxCommandEvent _Event( wxLOFreqChanged );
-            wxPostEvent( m_Parent, _Event);
-        }
-    }
-
-    if( pos.x > (102    ) && pos.y > ( 68    ) &&
-        pos.x < (102+ 24) && pos.y < ( 68+ 42) )
-    {
-        // 4th digit, LO
-        if( event.GetWheelRotation() >= 0 )
-        {
-            m_LOFrequency += 100000;
-            wxCommandEvent _Event( wxLOFreqChanged );
-            wxPostEvent( m_Parent, _Event);
-        }
-        else
-        {
-            m_LOFrequency -= 100000;
-            wxCommandEvent _Event( wxLOFreqChanged );
-            wxPostEvent( m_Parent, _Event);
-        }
-    }
-
-    if( pos.x > (124    ) && pos.y > ( 68    ) &&
-        pos.x < (124+ 24) && pos.y < ( 68+ 42) )
-    {
-        // 5th digit, LO
-        if( event.GetWheelRotation() >= 0 )
-        {
-            m_LOFrequency += 10000;
-            wxCommandEvent _Event( wxLOFreqChanged );
-            wxPostEvent( m_Parent, _Event);
-        }
-        else
-        {
-            m_LOFrequency -= 10000;
-            wxCommandEvent _Event( wxLOFreqChanged );
-            wxPostEvent( m_Parent, _Event);
-        }
-    }
-
-    if( pos.x > (148    ) && pos.y > ( 68    ) &&
-        pos.x < (148+ 24) && pos.y < ( 68+ 42) )
-    {
-        // 6th digit, LO
-        if( event.GetWheelRotation() >= 0 )
-        {
-            m_LOFrequency += 1000;
-            wxCommandEvent _Event( wxLOFreqChanged );
-            wxPostEvent( m_Parent, _Event);
-        }
-        else
-        {
-            m_LOFrequency -= 1000;
-            wxCommandEvent _Event( wxLOFreqChanged );
-            wxPostEvent( m_Parent, _Event);
-        }
-    }
-
-    if( pos.x > (380    ) && pos.y > ( 68    ) &&
-        pos.x < (380+ 24) && pos.y < ( 68+ 42) )
-    {
-        // 5th digit, Tune
-        if( event.GetWheelRotation() >= 0 )
-        {
-            m_Frequency += 10000;
-            wxCommandEvent _Event( wxFreqChanged );
-            wxPostEvent( m_Parent, _Event);
-        }
-        else
-        {
-            m_Frequency -= 10000;
-            wxCommandEvent _Event( wxFreqChanged );
-            wxPostEvent( m_Parent, _Event);
-        }
-    }
-
-    if( pos.x > (404    ) && pos.y > ( 68    ) &&
-        pos.x < (404+ 24) && pos.y < ( 68+ 42) )
-    {
-        // 5th digit, Tune
-        if( event.GetWheelRotation() >= 0 )
-        {
-            m_Frequency += 1000;
-            wxCommandEvent _Event( wxFreqChanged );
-            wxPostEvent( m_Parent, _Event);
-        }
-        else
-        {
-            m_Frequency -= 1000;
-            wxCommandEvent _Event( wxFreqChanged );
-            wxPostEvent( m_Parent, _Event);
-        }
-    }
-
-    if( pos.x > (434    ) && pos.y > ( 68    ) &&
-        pos.x < (434+ 20) && pos.y < ( 68+ 42) )
-    {
-        // 5th digit, Tune
-        if( event.GetWheelRotation() >= 0 )
-        {
-            m_Frequency += 100;
-            wxCommandEvent _Event( wxFreqChanged );
-            wxPostEvent( m_Parent, _Event);
-        }
-        else
-        {
-            m_Frequency -= 100;
-            wxCommandEvent _Event( wxFreqChanged );
-            wxPostEvent( m_Parent, _Event);
-        }
-    }
-
-    if( pos.x > (454    ) && pos.y > ( 68    ) &&
-        pos.x < (454+ 20) && pos.y < ( 68+ 42) )
-    {
-        // 5th digit, Tune
-        if( event.GetWheelRotation() >= 0 )
-        {
-            m_Frequency += 10;
-            wxCommandEvent _Event( wxFreqChanged );
-            wxPostEvent( m_Parent, _Event);
-        }
-        else
-        {
-            m_Frequency -= 10;
-            wxCommandEvent _Event( wxFreqChanged );
-            wxPostEvent( m_Parent, _Event);
-        }
-    }
-
-    if( pos.x > (474    ) && pos.y > ( 68    ) &&
-        pos.x < (474+ 20) && pos.y < ( 68+ 42) )
-    {
-        // 5th digit, Tune
-        if( event.GetWheelRotation() >= 0 )
-        {
-            m_Frequency += 1;
-            wxCommandEvent _Event( wxFreqChanged );
-            wxPostEvent( m_Parent, _Event);
-        }
-        else
-        {
-            m_Frequency -= 1;
-            wxCommandEvent _Event( wxFreqChanged );
-            wxPostEvent( m_Parent, _Event);
-        }
-    }
-
-    GlobalConfig* config = GlobalConfig::getInstance();
-    double sampleRate = config->getInputSampleRate();
-
-    m_LOFrequency = m_LOFrequency <         0 ?         0:m_LOFrequency;
-    m_LOFrequency = m_LOFrequency > 999999999 ? 999999999:m_LOFrequency;
-
-    // limit tuning against current input-samplerate...
-    m_Frequency   = m_Frequency   < -sampleRate/2.0 ? -sampleRate/2.0:m_Frequency;
-    m_Frequency   = m_Frequency   > +sampleRate/2.0 ? +sampleRate/2.0:m_Frequency;
-
-    // do not allow negative Frequencies as tuning-range...
-    if( m_Frequency < -m_LOFrequencyDisplay )
-    {
-        m_Frequency = -m_LOFrequencyDisplay;
+        event.Skip();
     }
 }
 
@@ -573,10 +597,10 @@ void wxCustomLCDisplay::setFreq( int frequency )
     m_Frequency   = m_Frequency   > +sampleRate/2.0 ? +sampleRate/2.0:m_Frequency;
 
     // do not allow negative Frequencies as tuning-range...
-    if( m_Frequency < -m_LOFrequencyDisplay )
-    {
-        m_Frequency = -m_LOFrequencyDisplay;
-    }
+    //if( m_Frequency < -m_LOFrequencyDisplay )
+    //{
+    //    m_Frequency = -m_LOFrequencyDisplay;
+    //}
 }
 
 int wxCustomLCDisplay::getFreq()

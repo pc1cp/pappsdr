@@ -118,7 +118,7 @@ ComplexSample AutomaticGainControl::update( ComplexSample& input )
     m_Gain = (m_Gain <        0.1f)?        0.1f:m_Gain;
     m_Gain = (m_Gain > 10000000.0f)? 10000000.0f:m_Gain;
 
-    float const gain = ( m_Gain <= m_LimitGain )? m_Gain:m_LimitGain;
+    float const gain = (float)(( m_Gain <= m_LimitGain )? m_Gain:m_LimitGain);
 
     ComplexSample out( m_Data[readPosition]*gain );
 

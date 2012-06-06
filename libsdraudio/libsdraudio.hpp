@@ -23,6 +23,8 @@
 #ifndef __LIBSDRAUDIO_HPP__
 #define __LIBSDRAUDIO_HPP__
 
+#include <fstream>
+
 // forward declarations of some classes
 
 //class ComplexSample;
@@ -128,7 +130,24 @@ class SDRAudio
     SDRAudio( float sampleRate );
    ~SDRAudio();
 
-    void setTune( float frequency ){ m_TuneFrequency = frequency; }
+    void setTune( float frequency )
+    { 
+        double delta = abs( m_TuneFrequency - frequency );
+        m_TargetTune = frequency;
+        
+        m_TuneIncrement = delta/(m_SampleRate*0.25);
+
+        if( delta < 200 )
+        {
+            m_TuneIncrement /= 2.0;
+        }
+
+        if( delta > 2000 )
+        {
+            m_TuneFrequency = m_TargetTune;
+        }
+    }
+
     void setMode( enum SDR_MODE );
     void setFilter( float bandwidth );
 
@@ -172,11 +191,11 @@ class SDRAudio
             {
                 case SDR_MODE_FM:
                     // for FM use a fast squelch with a 1/100th of a second
-                    m_SquelchCount = m_SampleRate/100.f;
+                    m_SquelchCount = (int)(m_SampleRate/100.0);
                     break;
                 default:
                     // set delay-counter to 1/4th of a second for all other modes
-                    m_SquelchCount = m_SampleRate/4.f;
+                    m_SquelchCount = (int)(m_SampleRate/4.0);
                     break;
             }
         }
@@ -186,26 +205,29 @@ class SDRAudio
     enum SDR_MODE   m_SDRMode;
 
     double          m_SampleRate;
-    //double          m_CoreSampleRate;
 
     double          m_Time;
     double          m_TuneFrequency;
-
-    int             m_Cascades;
-    //Downsampler**   m_Downsamplers;
+    double          m_TargetTune;
+    double          m_TuneIncrement;
 
     FirFilter*      m_FirFilter0;
     FirFilter*      m_FirFilter1;
 
-    double          m_FilterFrequency;
-    double          m_FilterBandwidth;
-    double          m_FilterToneShift;
+    volatile double         m_Phase0;
+    volatile double         m_Phase1;
+
+    volatile double          m_FilterFrequency;
+    volatile double          m_FilterBandwidth;
+    volatile double          m_FilterToneShift;
 
     float           m_SignalLevel;
     float           m_SquelchLevel;
     int             m_SquelchCount;
 
     AutomaticGainControl* m_AutomaticGainControl;
+
+    std::fstream    m_SDRLog;
 };
 
 #endif

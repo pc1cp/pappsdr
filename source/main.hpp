@@ -14,5 +14,5 @@
 
 #include "config.hpp"
 
-extern char Icon_png[];
+extern unsigned char Icon_png[];
 extern unsigned long Icon_png_size;

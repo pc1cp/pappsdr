@@ -15,7 +15,7 @@ class MyFrame : public wxFrame
 {
     public:
     MyFrame(const wxString& title, Pappradio* pappradio, wxLogWindow* logwindow );
-   ~MyFrame();
+    virtual ~MyFrame();
 
     void OnLoFreqChanged( wxCommandEvent& event );
     void OnFreqChanged( wxCommandEvent& event );
@@ -66,12 +66,20 @@ class MyFrame : public wxFrame
     void onButtonDNROFF     ( wxCommandEvent& event );
     void onButtonDNRON      ( wxCommandEvent& event );
 
-    void onClose            ( wxCloseEvent& event );
+    void onKeyPress         ( wxKeyEvent& event     );
+
+    void onMouseWheel       ( wxMouseEvent& event   );
+
+    void onTimer            ( wxTimerEvent& event   );
+
+    void onClose            ( wxCloseEvent& event   );
 
     private:
 
     void updatePreselector();
     void updateFrequencyDisplay();
+
+    wxTimer*            m_Timer;
 
     wxCustomLCDisplay*  m_LCDisplay;
     wxCustomFFTDisplay* m_FFTDisplayRF;
@@ -184,6 +192,8 @@ enum
 
     BUTTON_DNR_ON,
     BUTTON_DNR_OFF,
+
+    ID_TIMER,
 };
 
 BEGIN_EVENT_TABLE(MyFrame, wxFrame)
@@ -236,6 +246,10 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
 
     EVT_BUTTON (BUTTON_DNR_ON , MyFrame::onButtonDNRON  )
     EVT_BUTTON (BUTTON_DNR_OFF, MyFrame::onButtonDNROFF )
+
+    EVT_MOUSEWHEEL( MyFrame::onMouseWheel )
+
+    EVT_TIMER  ( ID_TIMER, MyFrame::onTimer )
 
 END_EVENT_TABLE()
 
@@ -315,15 +329,17 @@ MyFrame::MyFrame(const wxString& title, Pappradio* pappradio, wxLogWindow* logwi
   m_Pappradio( pappradio ),
   m_LogWindow( logwindow )
 {
-    #if defined(__WXGTK__) || defined(__WXMOTIF__)
+    //#if defined(__WXGTK__) || defined(__WXMOTIF__)
     {
         wxMemoryInputStream image_data(Icon_png, Icon_png_size );
-        wxBitmap* iconImage = new wxBitmap( wxImage( image_data ) );
+        wxImage* iconImage = //new wxBitmap( wxImage( image_data ) );
+                              new wxImage( image_data );
         wxIcon icon;
         icon.CopyFromBitmap(*iconImage);
         SetIcon( icon );
+        delete iconImage;
     }
-    #endif
+    //#endif
 
     wxBoxSizer* BoxSizer1 = new wxBoxSizer( wxVERTICAL );
     wxBoxSizer* BoxSizer2 = new wxBoxSizer( wxHORIZONTAL );
@@ -342,7 +358,7 @@ MyFrame::MyFrame(const wxString& title, Pappradio* pappradio, wxLogWindow* logwi
     m_PushButtonLSB = new wxCustomPushButton( this, BUTTON_LSB, _("LSB"), true  );
     m_PushButtonUSB = new wxCustomPushButton( this, BUTTON_USB, _("USB"), false );
     m_PushButtonAM  = new wxCustomPushButton( this, BUTTON_AM , _("AM") , false );
-    m_PushButtonFM  = new wxCustomPushButton( this, BUTTON_FM , _("FM") , false );
+    m_PushButtonFM  = new wxCustomPushButton( this, BUTTON_FM , _("NBFM") , false );
 
     wxBoxSizer* modesBox = new wxBoxSizer( wxHORIZONTAL );
 
@@ -358,9 +374,9 @@ MyFrame::MyFrame(const wxString& title, Pappradio* pappradio, wxLogWindow* logwi
     m_AttSeparator    = new wxCustomSeparator ( this, _("Attenuator"), 512 );
 
     m_PushButtonATT00 = new wxCustomPushButton( this, BUTTON_ATT00, _("Off"   ), true  );
-    m_PushButtonATT10 = new wxCustomPushButton( this, BUTTON_ATT10, _("-10 dB"), false );
-    m_PushButtonATT20 = new wxCustomPushButton( this, BUTTON_ATT20, _("-20 dB"), false );
-    m_PushButtonATT30 = new wxCustomPushButton( this, BUTTON_ATT30, _("-30 dB"), false );
+    m_PushButtonATT10 = new wxCustomPushButton( this, BUTTON_ATT10, _("-12 dB"), false );
+    m_PushButtonATT20 = new wxCustomPushButton( this, BUTTON_ATT20, _("-24 dB"), false );
+    m_PushButtonATT30 = new wxCustomPushButton( this, BUTTON_ATT30, _("-36 dB"), false );
 
     wxBoxSizer* attenuatorBox = new wxBoxSizer( wxHORIZONTAL );
 
@@ -537,11 +553,12 @@ MyFrame::MyFrame(const wxString& title, Pappradio* pappradio, wxLogWindow* logwi
 
     double frequencyLO  = config->getCurrentLOFrequency();
     double frequencyVFO = config->getCurrentVFOFrequency();
+    wxLogStatus( _("read back VFO is: %f"), frequencyVFO );
 
     m_Pappradio->setFrequency( frequencyLO );
     config->setTune( frequencyVFO );
-    m_LCDisplay->setLOFreq( (int)floor(0.5+frequencyLO/1000.0 )*1000 );
-    m_LCDisplay->setFreq  ( (int)floor(0.5+frequencyVFO       )      );
+    m_LCDisplay->setLOFreq( frequencyLO  );
+    m_LCDisplay->setFreq  ( frequencyVFO );
     updatePreselector();
     updateFrequencyDisplay();
 
@@ -624,17 +641,160 @@ MyFrame::MyFrame(const wxString& title, Pappradio* pappradio, wxLogWindow* logwi
     Layout();
 
     config->setSLevelCorrection( 0.0 );
+
+    m_Timer = new wxTimer( this, ID_TIMER );
+    m_Timer->Start(100);
+
 }
 
 MyFrame::~MyFrame()
 {
 }
 
+void MyFrame::onTimer( wxTimerEvent& event )
+{
+    GlobalConfig* config = GlobalConfig::getInstance();
+
+    static int   countVFO       = 0;
+    int          incrementVFO   = 0;
+
+    static int   countLO        = 0;
+    int          incrementLO    = 0;
+
+    if( FindFocus() == 0 ) return;
+
+    if(  wxGetKeyState(WXK_RIGHT   ) ) 
+    {
+        if( countVFO < +100 )
+        {
+            countVFO++;
+        }
+	}
+    else
+    if(  wxGetKeyState(WXK_LEFT    ) ) 
+    {
+        if( countVFO > -100 )
+        {
+            countVFO--;
+        }
+	}
+    else
+    if( !wxGetKeyState(WXK_LEFT    ) && 
+        !wxGetKeyState(WXK_RIGHT   ) ) 
+    {
+        countVFO     = 0;
+	}
+
+    if(  wxGetKeyState(WXK_UP ) ) 
+    {
+        if( countLO < +100 )
+        {
+            countLO++;
+        }
+	}
+    else
+    if(  wxGetKeyState(WXK_DOWN ) ) 
+    {
+        if( countLO > -100 )
+        {
+            countLO--;
+        }
+	}
+    else
+    if( !wxGetKeyState(WXK_UP   ) && 
+        !wxGetKeyState(WXK_DOWN ) ) 
+    {
+        countLO = 0;
+	}
+
+    if( countVFO != 0 )
+    {
+        int sign = ( countVFO > 0 )? +1:-1;
+        
+        if( abs(countVFO) < 5 )
+        {
+            incrementVFO = 1;
+        }
+        else
+        if( abs(countVFO) < 10 )
+        {
+            incrementVFO = 10;
+        }
+        else
+        if( abs(countVFO) < 15 )
+        {
+            incrementVFO = 100;
+        }
+        else
+        if( abs(countVFO) < 100 )
+        {
+            incrementVFO = 250;
+        }
+        else
+        {
+            incrementVFO = 1000;
+        }
+        incrementVFO *= sign;
+    }
+
+    if( countLO != 0 )
+    {
+        int sign = ( countLO > 0 )? +1:-1;
+        
+        if( abs(countLO) < 20 )
+        {
+            incrementLO = 1000;
+        }
+        else
+        if( abs(countLO) < 40 )
+        {
+            incrementLO = 10000;
+        }
+        else
+        if( abs(countLO) < 60 )
+        {
+            incrementLO = 25000;
+        }
+        else
+        if( abs(countLO) < 80 )
+        {
+            incrementLO = 50000;
+        }
+        else
+        {
+            incrementLO = 100000;
+        }
+        incrementLO *= sign;
+    }
+
+    if( countVFO || countLO )
+    {
+        m_Pappradio->setFrequency( m_Pappradio->getFrequency()+incrementLO );
+        m_LCDisplay->setLOFreq( m_Pappradio->getFrequency() );
+
+        m_LCDisplay->setFreq( m_LCDisplay->getFreq()+incrementVFO );
+
+        config->setTune( m_LCDisplay->getFreq() );
+        config->setCurrentVFOFrequency( m_LCDisplay->getFreq() );
+
+        config->setCurrentLOFrequency ( m_Pappradio->getFrequency() );
+        config->setCurrentVFOFrequency( m_LCDisplay->getFreq()      );
+
+        // update displayed frequencies
+        updateFrequencyDisplay();
+        // update preselector
+        updatePreselector();
+    }
+}
+
 void MyFrame::onClose( wxCloseEvent& WXUNUSED(event) )
 {
-    wxMessageBox( _("onClose") );
+    GlobalConfig* config = GlobalConfig::getInstance();
+    config->stopAudioThread();
+    //wxMessageBox( _("onClose") );
+    m_Timer->Stop();
     m_LogWindow->GetFrame()->Destroy();
-    Destroy();
+    this->Destroy();
 }
 
 void MyFrame::onButtonCW(wxCommandEvent& WXUNUSED(event))
@@ -782,6 +942,7 @@ void MyFrame::onButtonAtt00(wxCommandEvent& WXUNUSED(event))
     GlobalConfig* config = GlobalConfig::getInstance();
 
     config->setATTdB( config->getAttValue( 0 ) );
+    config->setCurrentAttenuator( 0 );
 
     m_Pappradio->setAttenuator( Pappradio::ATT00 );
     m_PushButtonATT00->setValue(true );
@@ -794,7 +955,9 @@ void MyFrame::onButtonAtt00(wxCommandEvent& WXUNUSED(event))
 void MyFrame::onButtonAtt10(wxCommandEvent& WXUNUSED(event))
 {
     GlobalConfig* config = GlobalConfig::getInstance();
+
     config->setATTdB( config->getAttValue( 1 ) );
+    config->setCurrentAttenuator( 1 );
 
     m_Pappradio->setAttenuator( Pappradio::ATT10 );
     m_PushButtonATT00->setValue(false);
@@ -807,7 +970,9 @@ void MyFrame::onButtonAtt10(wxCommandEvent& WXUNUSED(event))
 void MyFrame::onButtonAtt20(wxCommandEvent& WXUNUSED(event))
 {
     GlobalConfig* config = GlobalConfig::getInstance();
+
     config->setATTdB( config->getAttValue( 2 ) );
+    config->setCurrentAttenuator( 2 );
 
     m_Pappradio->setAttenuator( Pappradio::ATT20 );
     m_PushButtonATT00->setValue(false);
@@ -820,7 +985,9 @@ void MyFrame::onButtonAtt20(wxCommandEvent& WXUNUSED(event))
 void MyFrame::onButtonAtt30(wxCommandEvent& WXUNUSED(event))
 {
     GlobalConfig* config = GlobalConfig::getInstance();
+
     config->setATTdB( config->getAttValue( 3 ) );
+    config->setCurrentAttenuator( 3 );
 
     m_Pappradio->setAttenuator( Pappradio::ATT30 );
     m_PushButtonATT00->setValue(false);
@@ -1138,6 +1305,7 @@ void MyFrame::updateFrequencyDisplay()
 
 void MyFrame::OnLoFreqChanged( wxCommandEvent& WXUNUSED(event) )
 {
+    wxLogDebug( _("LO-Freq-changed-Event") );
     GlobalConfig* config = GlobalConfig::getInstance();
 
     std::cerr << "LO-Changed\n";
@@ -1186,8 +1354,35 @@ void MyFrame::onButtonDNRON( wxCommandEvent& WXUNUSED(event) )
     m_PushButtonDNROn ->setValue(true);
 }
 
+void MyFrame::onMouseWheel( wxMouseEvent& event )
+{
+    GlobalConfig* config = GlobalConfig::getInstance();
+
+    int increment = 100;
+
+    if(  event.ShiftDown() && !event.ControlDown() ) increment *=  10;
+    if( !event.ShiftDown() &&  event.ControlDown() ) increment /=  10;
+    if(  event.ShiftDown() &&  event.ControlDown() ) increment /= 100;
+
+    if( event.GetWheelRotation() > 0 )
+    {
+        m_LCDisplay->setFreq( m_LCDisplay->getFreq()+increment );
+    }
+    else
+    if( event.GetWheelRotation() < 0 )
+    {
+        m_LCDisplay->setFreq( m_LCDisplay->getFreq()-increment );
+    }
+    config->setTune( m_LCDisplay->getFreq() );
+
+    // update displayed frequencies
+    updateFrequencyDisplay();
+}
+
 void MyFrame::OnFreqChanged( wxCommandEvent& WXUNUSED(event) )
 {
+    wxLogDebug( _("VFO-Freq-changed-Event") );
+
     GlobalConfig* config = GlobalConfig::getInstance();
 
     config->setTune( m_LCDisplay->getFreq() );

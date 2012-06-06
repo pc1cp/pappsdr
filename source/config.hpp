@@ -32,20 +32,6 @@ class ConfigRegistry
     public:
     ConfigRegistry()
     {
-        m_Config = new wxConfig(_("PappSDR") );
-
-        wxFileConfig* fconf = dynamic_cast<wxFileConfig*>( m_Config );
-
-        if( fconf )
-        {
-            std::cout << "is file-config !!\n";
-            std::cout << "Path is \"" << fconf->GetPath().To8BitData() << "\"\n";
-        }
-        else
-        {
-            std::cout << "is not a file-config!!\n";
-        }
-
         // load settings ------------------------------------------------------
         loadSettings();
     }
@@ -54,44 +40,44 @@ class ConfigRegistry
     {
         // save settings ------------------------------------------------------
         saveSettings();
-
-        delete m_Config;
     }
 
-    void   setSampleRate( double value ){ m_AudioSampleRate = value;    }
+    void   setSampleRate( double value ){ m_AudioSampleRate = value; saveSettings();   }
     double getSampleRate( )             { return( m_AudioSampleRate );  }
 
-    void   setSampleRatePPM( double value ){ m_AudioSampleRateErrorPPM = value; }
+    void   setSampleRatePPM( double value ){ m_AudioSampleRateErrorPPM = value; saveSettings(); }
     double getSampleRatePPM( )             { return( m_AudioSampleRateErrorPPM ); }
 
-    void   setInputDevice( wxString deviceName ) { m_AudioInputDevice.Name = deviceName; }
+    void   setInputDevice( wxString deviceName ) { m_AudioInputDevice.Name = deviceName; saveSettings(); }
     wxString getInputDevice( ) { return m_AudioInputDevice.Name; }
 
-    void   setOutputDevice( wxString deviceName ) { m_AudioOutputDevice.Name = deviceName; }
+    void   setOutputDevice( wxString deviceName ) { m_AudioOutputDevice.Name = deviceName; saveSettings(); }
     wxString getOutputDevice( ) { return m_AudioOutputDevice.Name; }
 
-    void    setXTalPPM( double value ){ m_PappradioXTALPPM = value; }
+    void    setXTalPPM( double value ){ m_PappradioXTALPPM = value; saveSettings(); }
     double  getXTalPPM() { return m_PappradioXTALPPM; }
 
-    void   setAttValue( int index, double valueDB ){ m_AttenuatorRealDB[index&3] = valueDB;};
+    void   setAttValue( int index, double valueDB ){ m_AttenuatorRealDB[index&3] = valueDB; saveSettings();};
     double getAttValue( int index ){ return ( m_AttenuatorRealDB[index&3] ); }
 
-    void    setCurrentAttenuator( int index ){ m_AttenuatorIndex = (int)index; }
+    void    setCurrentAttenuator( int index ){ m_AttenuatorIndex = (int)index; saveSettings(); }
     int     getCurrentAttenuator(){ return ( (int)m_AttenuatorIndex ); }
 
-    void    setCurrentMode( int index ){ m_ModeIndex = (int)index; }
+    void    setCurrentMode( int index ){ m_ModeIndex = (int)index; saveSettings();}
     int     getCurrentMode(){ return ( (int)m_ModeIndex ); }
 
-    void    setCurrentLOFrequency( double frequency ){ m_LOFrequency = frequency; }
-    int     getCurrentLOFrequency(){ return ( m_LOFrequency ); }
+    void    setCurrentLOFrequency( double frequency ){ m_LOFrequency = frequency; saveSettings();}
+    int     getCurrentLOFrequency(){ return ( (int)m_LOFrequency ); }
 
-    void    setCurrentVFOFrequency( double frequency ){ m_VFOFrequency = frequency; }
-    int     getCurrentVFOFrequency(){ return ( m_VFOFrequency ); }
+    void    setCurrentVFOFrequency( double frequency ){ m_VFOFrequency = frequency; saveSettings(); }
+    int     getCurrentVFOFrequency(){ return ( (int)m_VFOFrequency ); }
 
     private:
 
     void        loadSettings()
     {
+        m_Config = new wxConfig(_("PappSDR") );
+
         m_Config->Read( _("SampleRate"),
                         _("44100")       ).ToDouble
                         ( &m_AudioSampleRate );
@@ -136,16 +122,21 @@ class ConfigRegistry
                         _("10000")              ).ToDouble
                         ( &m_VFOFrequency );
 
+        wxLogStatus( _("VFO-Frequency read back: %f"), m_VFOFrequency );
+
         m_AudioInputDevice.Name  = m_Config->Read( _("AudioInputDeviceName"),
                                                    _("") );
 
         m_AudioOutputDevice.Name = m_Config->Read( _("AudioOutputDeviceName"),
                                                    _("") );
+
+        delete m_Config;
     }
 
     void        saveSettings()
     {
         wxString valueString;
+        m_Config = new wxConfig(_("PappSDR") );
 
         valueString.Printf( _("%f"), m_AudioSampleRate );
         m_Config->Write( _("SampleRate"), valueString );
@@ -187,6 +178,7 @@ class ConfigRegistry
                          m_AudioOutputDevice.Name );
 
         m_Config->Flush();
+        delete m_Config;
     }
 
     // Audio-Devices ----------------------------------------------------------
@@ -216,6 +208,30 @@ class ConfigRegistry
     wxConfig*                           m_Config;
 };
 
+class GlobalLogging : public wxFrame
+{
+    public:
+    GlobalLogging()
+    : wxFrame(NULL, wxID_ANY, _("PappSDR-Logging") )
+    {
+        wxBoxSizer* topSizer = new wxBoxSizer( wxVERTICAL );
+        m_TextCtrl = new wxTextCtrl( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(640,480), 0L );
+        topSizer->Add( m_TextCtrl );
+        SetSizerAndFit( topSizer );
+        Show();
+    }
+
+    virtual ~GlobalLogging(){};
+
+//    void logMessage( wxString    text );
+//    void logMessage( std::string text );
+//    void logMessage( char* const text );
+
+    private:
+    wxMutex         m_LogMutex;
+    wxTextCtrl*     m_TextCtrl;
+};
+
 class GlobalConfig
 {
     // make singleton (C & CC are private)
@@ -233,6 +249,8 @@ class GlobalConfig
     }
 
     bool startAudioThread();
+    bool stopAudioThread();
+
     void chooseSoundDevices();
     std::vector<AudioDevice_t> getOutputDevices();
     std::vector<AudioDevice_t> getInputDevices();
@@ -314,6 +332,7 @@ class GlobalConfig
 
     wxMutex                     m_ConfigMutex;
 
+    GlobalLogging*              m_LoggingWindow;
     ConfigRegistry              m_Registry;
 };
 

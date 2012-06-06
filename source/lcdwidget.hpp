@@ -44,11 +44,15 @@ class wxCustomLCDisplay : public wxPanel
     void OnMouseWheel( wxMouseEvent& event );
     void onTimer     ( wxTimerEvent& event );
     void onClicked   ( wxMouseEvent& event );
-
+    void onEnter     ( wxMouseEvent& event );
+    void onLeave     ( wxMouseEvent& event );
+    
     void renderDigit ( wxDC& dc, wxCoord x, wxCoord y, int number, bool size );
     void renderNumber( wxDC& dc, wxCoord x, wxCoord y, int number );
 
     DECLARE_EVENT_TABLE();
+
+    bool            m_HasFocus;
 
     wxSize          m_Size;
     wxWindow*       m_Parent;

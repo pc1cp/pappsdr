@@ -103,8 +103,8 @@ wxCustomFFTDisplay::wxCustomFFTDisplay( wxWindow* parent, enum FFTMODE mode )
     m_oBuffer0       = new kiss_fft_cpx  [ m_FFTSize   ];
     m_oBuffer1       = new kiss_fft_cpx  [ m_FFTSize   ];
     m_WindowBuffer   = new float         [ m_FFTSize   ];
-    m_RingBuffer     = new ComplexSample [ m_FFTSize*2 ];
-    m_RingBufferSize = m_FFTSize*2;
+    m_RingBuffer     = new ComplexSample [ m_FFTSize*4 ];
+    m_RingBufferSize = m_FFTSize*4;
 
     m_WindowCorrection = 0.f;
     for( int n=0; n<m_FFTSize; ++n )
@@ -234,6 +234,22 @@ void wxCustomFFTDisplay::drawWaterfall()
     m_SourceDC.SelectObject( wxNullBitmap );
 }
 
+float colourTable[12][3] =
+{
+    {   0.0,   0.0,   0.0  }, // below S0
+    {   0.0,   0.0, 128.0  }, // S0
+    {   0.0,   0.0, 255.0  }, // S1
+    {  16.0,  64.0, 255.0  }, // S2
+    {  32.0, 128.0, 255.0  }, // S3
+    { 144.0,  64.0, 192.0  }, // S4
+    { 255.0,   0.0, 128.0  }, // S5
+    { 255.0,   0.0,   0.0  }, // S6
+    { 255.0, 128.0,   0.0  }, // S7
+    { 255.0, 255.0,   0.0  }, // S8
+    { 255.0, 255.0, 128.0  }, // S9
+    { 255.0, 255.0, 255.0  }  // above S9
+};
+
 void wxCustomFFTDisplay::updateWaterfall()
 {
     float r=0;
@@ -258,7 +274,7 @@ void wxCustomFFTDisplay::updateWaterfall()
         else
         {
             // for audio-out
-            value = (48+value)/(24);        // normalize to 0..-48dB range for
+            value = (52+value)/(24);        // normalize to 0..-48dB range for
                                             // display and clamp
         }
 
@@ -266,7 +282,8 @@ void wxCustomFFTDisplay::updateWaterfall()
             value = 0;
         if( value > 1 )
             value = 1;
-
+        
+        #if 0
         if( value < 0.20 )
         {
             blend = value/0.20;
@@ -312,6 +329,21 @@ void wxCustomFFTDisplay::updateWaterfall()
             g = 255.f;
             b = 255.f;
         }
+        #else
+        int   loIndex = (int)floorf( value * 12.f );
+        int   hiIndex = loIndex + 1;
+        float a0      = ( value * 12.f ) - (float)loIndex;
+        float a1      = 1.f - a0;
+
+        if( hiIndex > 11 )
+        {
+            hiIndex = 11;
+        }
+
+        r = colourTable[loIndex][0] * a1 + colourTable[hiIndex][0] * a0;
+        g = colourTable[loIndex][1] * a1 + colourTable[hiIndex][1] * a0;
+        b = colourTable[loIndex][2] * a1 + colourTable[hiIndex][2] * a0;
+        #endif
 
         r = (r>255) ? 255:r;
         g = (g>255) ? 255:g;
@@ -781,12 +813,17 @@ void wxCustomFFTDisplay::onTimer( wxTimerEvent& WXUNUSED(event) )
 
     if( fftQueue )
     {
-        // copy into ringbuffer until no Samples are left
+        int nrOfSamples = config->getSampleRate();
+        nrOfSamples = config->getSampleRate()/30.0;
+
+        // copy into ringbuffer 
         fftQueue->lock();
-        while( fftQueue->getLength() > 1000 )
+        int readCount=0;
+        while( fftQueue->getLength() > 1000 && readCount < nrOfSamples )
         {
             m_RingBuffer[m_RingBufferPointer] = fftQueue->pull();
             m_RingBufferPointer = (m_RingBufferPointer+1)%m_RingBufferSize;
+            readCount++;
         }
         fftQueue->unlock();
 
@@ -803,6 +840,17 @@ void wxCustomFFTDisplay::onTimer( wxTimerEvent& WXUNUSED(event) )
         }
 
         kiss_fft( m_KissCFG, m_iBuffer, m_oBuffer0);
+
+        // copy into ringbuffer 
+        fftQueue->lock();
+        readCount=0;
+        while( fftQueue->getLength() > 1000 && readCount < nrOfSamples )
+        {
+            m_RingBuffer[m_RingBufferPointer] = fftQueue->pull();
+            m_RingBufferPointer = (m_RingBufferPointer+1)%m_RingBufferSize;
+            readCount++;
+        }
+        fftQueue->unlock();
 
         for( int n=0; n<m_FFTSize; ++n )
         {
@@ -852,8 +900,9 @@ void wxCustomFFTDisplay::onTimer( wxTimerEvent& WXUNUSED(event) )
         {
             for( int n=0; n<512; ++n )
             {
-                int offset0 = (double)n*(double)m_FFTSize/1024.0;
-                int offset1 = (double)n*(double)m_FFTSize/1024.0;
+                int offset0 = (double)(n+0)*(double)m_FFTSize/2.0/512.0;
+                int offset1 = (double)(n+1)*(double)m_FFTSize/2.0/512.0;
+                int offset2 = (double)(n-1)*(double)m_FFTSize/2.0/512.0;
                 offset0 %= m_FFTSize;
                 offset1 %= m_FFTSize;
 
@@ -865,7 +914,11 @@ void wxCustomFFTDisplay::onTimer( wxTimerEvent& WXUNUSED(event) )
                          sqrtf( m_oBuffer0[offset1].r *
                                 m_oBuffer0[offset1].r +
                                 m_oBuffer0[offset1].i *
-                                m_oBuffer0[offset1].i )+
+                                m_oBuffer0[offset1].i )*0.5f+
+                         sqrtf( m_oBuffer0[offset2].r *
+                                m_oBuffer0[offset2].r +
+                                m_oBuffer0[offset2].i *
+                                m_oBuffer0[offset2].i )*0.5f+
                          sqrtf( m_oBuffer1[offset0].r *
                                 m_oBuffer1[offset0].r +
                                 m_oBuffer1[offset0].i *
@@ -873,8 +926,12 @@ void wxCustomFFTDisplay::onTimer( wxTimerEvent& WXUNUSED(event) )
                          sqrtf( m_oBuffer1[offset1].r *
                                 m_oBuffer1[offset1].r +
                                 m_oBuffer1[offset1].i *
-                                m_oBuffer1[offset1].i );
-                m_aBuffer[n] /= m_WindowCorrection*4.f;
+                                m_oBuffer1[offset1].i )*0.5f+
+                         sqrtf( m_oBuffer1[offset2].r *
+                                m_oBuffer1[offset2].r +
+                                m_oBuffer1[offset2].i *
+                                m_oBuffer1[offset2].i )*0.5f;
+               m_aBuffer[n] /= m_WindowCorrection*4.f;
             }
         }
     }
@@ -885,9 +942,12 @@ void wxCustomFFTDisplay::onTimer( wxTimerEvent& WXUNUSED(event) )
 
 void wxCustomFFTDisplay::onClick( wxMouseEvent& event )
 {
-    wxCommandEvent _Event( wxFFTClicked );
-    _Event.SetInt( event.GetPosition().x - m_Width/2 );
-    wxPostEvent( m_Parent, _Event);
+    if( m_Mode == FFT_RADIOFREQ )
+    {
+        wxCommandEvent _Event( wxFFTClicked );
+        _Event.SetInt( event.GetPosition().x - m_Width/2 );
+        wxPostEvent( m_Parent, _Event);
+    }
 }
 
 void wxCustomFFTDisplay::setTune( double frequency )

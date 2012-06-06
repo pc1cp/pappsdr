@@ -25,6 +25,7 @@ class AudioThread: public wxThread
     AudioThread                 ();
     virtual void* Entry         ();
     void    Reconfigure         ();
+    void    terminate           ();
 
     void    setMode             ( SDRAudio::SDR_MODE );
     void    setFilter           ( float bandwidth );
@@ -49,6 +50,8 @@ class AudioThread: public wxThread
     double  getSampleRate();
 
     private:
+
+    bool    m_Done;
 
     enum AUDIOSTATE
     {
@@ -80,9 +83,9 @@ class AudioThread: public wxThread
     static double       s_TestSampleRates[];
     static int          s_NrOfTestSampleRates;
 
-    AudioQueue          m_OutputQueue;
-    AudioQueue          m_InputQueue;
-    AudioQueue          m_AudioFFTQueue;
+    static AudioQueue          m_OutputQueue;
+    static AudioQueue          m_InputQueue;
+    static AudioQueue          m_AudioFFTQueue;
 
     float               m_AttenuatorValue;
 

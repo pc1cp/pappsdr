@@ -4,6 +4,9 @@
 #include <iostream>
 #include <ciso646>
 
+AudioQueue AudioThread::m_AudioFFTQueue;
+AudioQueue AudioThread::m_OutputQueue;
+AudioQueue AudioThread::m_InputQueue;
 
 double  AudioThread::s_TestSampleRates[]    = { 192000.0,
                                                 176400.0,
@@ -14,6 +17,8 @@ double  AudioThread::s_TestSampleRates[]    = { 192000.0,
 int     AudioThread::s_NrOfTestSampleRates  = 1;
 
 AudioThread::AudioThread()
+:
+    wxThread( wxTHREAD_JOINABLE )
 {
    	wxMutexLocker lock( m_ThreadMutex );
 	wxLogStatus( _("AudioThread::AudioThread();") );
@@ -22,7 +27,7 @@ AudioThread::AudioThread()
 
     m_ReconfigureFlag = false;
 
-    m_Latency = 500.0/1000.0; // min 10ms!!
+    m_Latency = 50.0/1000.0; // min 10ms!!
 
     // set AudioQueues to 1 seconds buffer on maximum allowed Rate
     m_OutputQueue.resize( 1000000 );
@@ -42,16 +47,22 @@ AudioThread::AudioThread()
 	wxLogStatus( _("       AF-FFT-Queue-Size = %i"), m_AudioFFTQueue.size() );
 }
 
+void AudioThread::terminate()
+{
+    m_Done = true;
+}
+
 void* AudioThread::Entry()
 {
 	wxLogStatus( _("AudioThread::Entry();") );
-    bool done = false;
+    
+    m_Done = false;
 
     m_PaStreamIsActive = false;
 
     int cnt=0;
 
-    while( not done )
+    while( not m_Done )
     {
         // Check Audio-Device-State every 100 ms
         switch( m_AudioState )
@@ -68,11 +79,31 @@ void* AudioThread::Entry()
                 wxLogStatus( _("Audiothread-STATE: OPEN") );
 
                 // Open, but not running? Then start it by all means...
-                Pa_StartStream( m_PaStream );
-                m_PaStreamIsActive = true;
+                int err=Pa_StartStream( m_PaStream );
+                int cnt=0;
+                while( err != paNoError && cnt<5 )
+                {
+                    err = Pa_StartStream( m_PaStream );
+                    cnt++;
+                }
+
+                if( err == paNoError )
+                {
+                    m_PaStreamIsActive = true;
+                    wxLogStatus( _("Audiothread-STATE: OPEN and Portaudio-Stream successfully started.") );
+                    wxLogStatus( _("                   Portaudio-Error-Code: %i "), err );
+                    wxLogStatus( _("                   Portaudio-Error-Text: %s "), Pa_GetErrorText( err ) );
+                    m_AudioState = STATE_RUNNING;
+                }
+                else
+                {
+                    m_AudioState = STATE_ERROR;
+                    wxLogStatus( _("Audiothread-STATE: OPEN and Portaudio-Stream *NOT* successfully started.") );
+                    wxLogStatus( _("                   Portaudio-Error-Code: %i "), err );
+                    wxLogStatus( _("                   Portaudio-Error-Text: %s "), Pa_GetErrorText( err ) );
+                }
 
                 // change audio-state to running...
-                m_AudioState = STATE_RUNNING;
                 break;
             }
             case STATE_ERROR:
@@ -117,7 +148,7 @@ void* AudioThread::Entry()
                 // do nothing but wait for reconfigure-flag... and check that
                 // all audio-streams are up and running...
 
-                cnt = (cnt+1)%40;
+                cnt = (cnt+1)%80;
                 if( cnt==0 )
                 wxLogStatus( _("Audiothread-STATE: RUNNING") );
 
@@ -146,12 +177,25 @@ void* AudioThread::Entry()
                 {
                     if( Pa_IsStreamActive( m_PaStream ) != 1 )
                     {
+                        // flag error
                         m_AudioState = STATE_ERROR;
+                        // try to get some information on the
+                        // error...
+                        const PaHostErrorInfo* errorInfo = Pa_GetLastHostErrorInfo();
+                        wxLogStatus( _("PaGetLastErrorInfo: %i %i %s"), (int)errorInfo->hostApiType, errorInfo->errorCode, errorInfo->errorText );
                     }
                 }
             }
         }
-        Sleep( 2500 ); // wait for 2500 ms
+        Sleep( 100 ); // wait for 100 ms
+    }
+
+	// close all active streams ...
+    if( m_PaStreamIsActive )
+    {
+        Pa_StopStream( m_PaStream );
+        Pa_CloseStream( m_PaStream );
+        m_PaStreamIsActive = false;
     }
 
     // all finished here...
@@ -201,7 +245,7 @@ void    AudioThread::Configure()
         memset( &m_PaParametersOut, 0, sizeof( m_PaParametersOut ) );
 
         double inputLatency  = Pa_GetDeviceInfo( PortaudioDeviceIndexOut )
-                               ->defaultHighInputLatency;
+                               ->defaultLowInputLatency;
         double outputLatency = inputLatency;
 
         std::cerr << "default-Latency-In : " <<  inputLatency*m_SampleRate << "\n";
@@ -275,6 +319,10 @@ void    AudioThread::Configure()
         }
 
         m_AudioState = STATE_ERROR;
+        // try to get some information on the
+        // error...
+        const PaHostErrorInfo* errorInfo = Pa_GetLastHostErrorInfo();
+        wxLogStatus( _("PaGetLastErrorInfo: %i %i %s"), (int)errorInfo->hostApiType, errorInfo->errorCode, errorInfo->errorText );
     }
 }
 
@@ -377,7 +425,7 @@ int AudioThread::PaCallback( const void * iDataPtr,
     double coreRate = _this_->m_SDRAudio->getSampleRate();
     double inputRate = _this_->m_SDRAudio->getSampleRate();
 
-    int ratio = inputRate/6000.0;// inputRate/coreRate;
+    int ratio = inputRate/12000.0;// inputRate/coreRate;
 
     _this_->m_AudioFFTQueue.lock();
     for( unsigned long n=0; n<frames; ++n )

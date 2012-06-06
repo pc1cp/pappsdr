@@ -225,20 +225,20 @@ wxPanel* wxCustomConfigDialog::createHardwarePage( wxBookCtrlBase* parent )
         new wxStaticBoxSizer( wxVERTICAL, page, _("XTal-Deviation (PPM)") );
 
     double value = config->getXTalPPM();
-    m_XTalPPMSpin = new wxCustomSpinCtrl( page, ID_CONF_XTAL_PPM, -2000, 2000, value, 0.1 , 4);
+    m_XTalPPMSpin = new wxCustomSpinCtrl( page, ID_CONF_XTAL_PPM, -2000, 2000, value, 0.1f , 4);
     xTalSizer->Add( m_XTalPPMSpin,  0, wxEXPAND|wxALL, 8 );
 
     wxStaticBoxSizer* attSizer =
         new wxStaticBoxSizer( wxVERTICAL, page, _("Attenuator-Calibration") );
 
     value = config->getAttValue(0);
-    m_Att00Spin = new wxCustomSpinCtrl( page, ID_CONF_ATT00, -240, 240, value, 0.1 , 2);
+    m_Att00Spin = new wxCustomSpinCtrl( page, ID_CONF_ATT00, -240, 240, value, 0.1f , 2);
     value = config->getAttValue(1);
-    m_Att10Spin = new wxCustomSpinCtrl( page, ID_CONF_ATT10, -240, 240, value, 0.1 , 2);
+    m_Att10Spin = new wxCustomSpinCtrl( page, ID_CONF_ATT10, -240, 240, value, 0.1f , 2);
     value = config->getAttValue(2);
-    m_Att20Spin = new wxCustomSpinCtrl( page, ID_CONF_ATT20, -240, 240, value, 0.1 , 2);
+    m_Att20Spin = new wxCustomSpinCtrl( page, ID_CONF_ATT20, -240, 240, value, 0.1f , 2);
     value = config->getAttValue(3);
-    m_Att30Spin = new wxCustomSpinCtrl( page, ID_CONF_ATT30, -240, 240, value, 0.1 , 2);
+    m_Att30Spin = new wxCustomSpinCtrl( page, ID_CONF_ATT30, -240, 240, value, 0.1f , 2);
 
     wxStaticText* hintText = new wxStaticText( page, -1,
         _( "The Attenuator 0dB (\"no Attenuator\") value is used for S-Meter "

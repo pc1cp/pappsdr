@@ -26,7 +26,7 @@ int main( int argc, char** argv )
         if( outfile.is_open() )
         {
             infile.seekg( 0, std::ios::end );
-            size_t length_of_file=infile.tellg();
+            std::streamoff length_of_file=infile.tellg();
             infile.seekg( 0, std::ios::beg );
 
             outfile

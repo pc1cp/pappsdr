@@ -26,12 +26,14 @@
 #include "agc.hpp"
 
 #include <iostream>
+#include <fstream>
 
 SDRAudio::SDRAudio( float sampleRate )
     :
     m_SampleRate   ( sampleRate )
 {
-    std::cerr << "SDR-Input-Samplerate .... : " << m_SampleRate << "\n";
+    m_SDRLog.open( "sdr_engine_log.txt", std::ios::out );
+    m_SDRLog << "SDR-Samplerate: " << m_SampleRate << "\n";
 
     m_TuneFrequency         =    0;
     m_FilterFrequency       = 1500;
@@ -45,16 +47,22 @@ SDRAudio::SDRAudio( float sampleRate )
     m_FirFilter0 = new FirFilter( m_SampleRate,
                                   m_FilterBandwidth,
                                   0,
-                                  8192*2 );
+                                  8192 );
 
     m_FirFilter1 = new FirFilter( m_SampleRate,
                                   m_FilterBandwidth,
                                   0,
-                                  8192*2 );
+                                  8192 );
 
 //    m_FirFilter1->setDeHumm();
 
     m_AutomaticGainControl = new AutomaticGainControl( m_SampleRate );
+
+    m_Time = 2.0*M_PI/m_SampleRate;
+    m_Phase0 = 0.0;
+    m_Phase1 = 0.0;
+    m_FilterToneShift = 0.f;
+    m_TuneIncrement = 1;
 }
 
 void SDRAudio::updateSignalLevel( ComplexSample& input )
@@ -78,20 +86,18 @@ void SDRAudio::setMode( enum SDR_MODE mode )
 
 SDRAudio::~SDRAudio()
 {
+    m_SDRLog.close();
     delete m_FirFilter0;
     delete m_FirFilter1;
 }
 
-#include <fstream>
-
 bool SDRAudio::update( ComplexSample& input, ComplexSample& output )
 {
-    m_Time = 1.0 / m_SampleRate;//fmod( m_Time + 1.0 / m_InputSampleRate, 1.0 );
+    if(m_TuneFrequency > m_TargetTune ) m_TuneFrequency -= m_TuneIncrement;
+    if(m_TuneFrequency < m_TargetTune ) m_TuneFrequency += m_TuneIncrement;
 
-    static double phase0;
-    static double phase1;
-    phase0 += m_Time*(m_TuneFrequency  -m_FilterFrequency)*-2.f*M_PI;
-    phase1 += m_Time*(m_FilterFrequency+m_FilterToneShift)*-2.f*M_PI;
+    m_Phase0 += (-m_TuneFrequency  )*m_Time;
+    m_Phase1 += (+m_FilterToneShift)*m_Time;
 
     switch( m_SDRMode )
     {
@@ -100,82 +106,91 @@ bool SDRAudio::update( ComplexSample& input, ComplexSample& output )
         case SDR_MODE_DSB:
         case SDR_MODE_CW:
         {
-            static std::fstream debugfile("ssb-out.raw", std::ios::binary|std::ios::out );
+            //static std::fstream debugfile("ssb-out.raw", std::ios::binary|std::ios::out );
 
-            output = input * ComplexSample( (float)cos(phase0),
-                                            (float)sin(phase0) );
+            output = input * ComplexSample( (float)cos(m_Phase0),
+                                            (float)sin(m_Phase0) );
+
             output = m_FirFilter0->update( output );
             updateSignalLevel( output );
             output  = m_AutomaticGainControl->update( output );
-            output *= ComplexSample( (float)cos(phase1),
-                                     (float)sin(phase1) );
+            
+            output *= ComplexSample( (float)cos(m_Phase1),
+                                     (float)sin(m_Phase1) );
+                                    
+            output = m_FirFilter1->update( output );
+
             float sample = output.getI();
             output = ComplexSample( sample, sample );
             updateSquelch( output );
-            output = m_FirFilter1->update( output );
 
-            debugfile.write((char*)&output, sizeof(output) );
+            //debugfile.write((char*)&output, sizeof(output) );
             return( true );
 //            break;
         }
         case SDR_MODE_AM:
         {
-            static std::fstream debugfile_am("am-out.raw", std::ios::binary|std::ios::out );
-            output = input * ComplexSample( (float)cos(phase0),
-                                            (float)sin(phase0) );
+            //static std::fstream debugfile_am("am-out.raw", std::ios::binary|std::ios::out );
+            output = input * ComplexSample( (float)cos(m_Phase0),
+                                            (float)sin(m_Phase0) );
 
             output = m_FirFilter0->update( output );
             updateSignalLevel(output);
 
             output = m_AutomaticGainControl->update( output );
-            output *= 1.4142;
+            output *= 1.4142f*2;
 
             float temp = fabs(output);
             output = m_FirFilter1
                      ->update( ComplexSample( temp, temp ) );
 
+            float sample = output.getI();
+            output = ComplexSample( sample, sample );
 
             updateSquelch( output );
-            debugfile_am.write((char*)&output, sizeof(output) );
+            //debugfile_am.write((char*)&output, sizeof(output) );
             return( true );
             break;
         }
         case SDR_MODE_FM:
         {
-            output = input * ComplexSample( (float)cos(phase0),
-                                            (float)sin(phase0) );
-            static ComplexSample last0;
-            static ComplexSample last1;
+            //static std::fstream debugfile_fm("fm-out.raw", std::ios::binary|std::ios::out );
 
+            output = input * ComplexSample( (float)cos(m_Phase0),
+                                            (float)sin(m_Phase0) );
+
+            static ComplexSample last=0.f;
 
             output = m_FirFilter0->update( output );
+
             updateSignalLevel(output);
+            output = m_AutomaticGainControl->update( output );
 
-            float value0 = atan2( output.getI(), output.getQ() )/M_PI-
-                           atan2( last0. getI(), last0 .getQ() )/M_PI;
+            float value = atan2( output.getI(), output.getQ() )/M_PI-
+                          atan2( last.  getI(), last  .getQ() )/M_PI;
 
-            float value1 = atan2( output.getI(), output.getQ() )/M_PI-
-                           atan2( last1. getI(), last1 .getQ() )/M_PI;
+            value = (value <= -1.0f)? value+2.0f : value;
+            value = (value >= +1.0f)? value-2.0f : value;
 
-            value0 = (value0<=-1.0)? value0+2.0:value0;
-            value0 = (value0>=+1.0)? value0-2.0:value0;
+            value *= (float)((m_SampleRate/8.0) / (m_FilterBandwidth));
 
-            value1 = (value1<=-1.0)? value1+2.0:value1;
-            value1 = (value1>=+1.0)? value1-2.0:value1;
-
-            float value = (value0)/1.0;
-
-            value *= m_SampleRate / m_FilterBandwidth;
             value = (value > +1.f)? +1.f:value;
             value = (value < -1.f)? -1.f:value;
 
-            last1 = last0;
-            last0 = output;
+            last = output;
 
             output = ComplexSample( value, value );
             updateSquelch( output );
 
+            //output = ComplexSample( (float)rand()/(float)RAND_MAX,
+            //                        (float)rand()/(float)RAND_MAX )*4;
+
             output = m_FirFilter1->update( output );
+
+            float sample = output.getI();
+            output = ComplexSample( sample, sample );
+
+            //debugfile_fm.write((char*)&output, sizeof(output) );
 
             return( true );
             break;
@@ -186,7 +201,7 @@ bool SDRAudio::update( ComplexSample& input, ComplexSample& output )
 
 void SDRAudio::setFilter( float bandwidth )
 {
-    float const nyquist = m_SampleRate/2.f;
+    float const nyquist = (float)m_SampleRate/2.f;
     float const fmax = nyquist - 200.f;
     float const fmin = 50.f;
 
@@ -195,50 +210,100 @@ void SDRAudio::setFilter( float bandwidth )
         m_FilterToneShift = 1000.f;
         m_FilterFrequency = 0.f;
         bandwidth /= 2.f;
-        float loFreq = m_FilterToneShift-bandwidth;
-        float hiFreq = m_FilterToneShift+bandwidth;
+        float loFreq = (float)m_FilterToneShift-bandwidth;
+        float hiFreq = (float)m_FilterToneShift+bandwidth;
 
         if( loFreq < fmin ) loFreq = fmin;
         if( loFreq > fmax ) loFreq = fmax;
         if( hiFreq <    0.f ) hiFreq =    0.f;
         if( hiFreq > 6000.f ) hiFreq = 6000.f;
 
-        std::cerr << "bandwidth = +/-" << bandwidth << " Hz\n";
-        std::cerr << "loFreq    =    " << loFreq << " Hz\n";
-        std::cerr << "hiFreq    =    " << hiFreq << " Hz\n";
+        #if 1
+        m_SDRLog << "Mode: CW ------------------------------\n";
+        m_SDRLog << "IF-Shift  =    " << m_FilterToneShift << " Hz\n";
+        m_SDRLog << "FLT-Shift =    " << m_FilterFrequency << " Hz\n";
+        m_SDRLog << "bandwidth = +/-" << bandwidth << " Hz\n";
+        m_SDRLog << "loFreq    =    " << loFreq << " Hz\n";
+        m_SDRLog << "hiFreq    =    " << hiFreq << " Hz\n";
+        m_SDRLog << "---------------------------------------\n\n";
+        #endif
 
-        m_FirFilter0->setBandwidth( bandwidth );
+        m_FirFilter1->setDeemphLevel( -0 );
+        m_FirFilter1->setDeemphFmin ( hiFreq );
+        m_FirFilter1->setDeemphFmax ( hiFreq );
+
+        m_FirFilter0->setBandwidth( -bandwidth, +bandwidth );
         m_FirFilter1->setBandwidth( loFreq, hiFreq );
+
+        #if 1
+        m_SDRLog << "Mode: CW ------------------------------\n";
+        m_SDRLog << "IF-Shift  =    " << m_FilterToneShift << " Hz\n";
+        m_SDRLog << "FLT-Shift =    " << m_FilterFrequency << " Hz\n";
+        m_SDRLog << "bandwidth = +/-" << bandwidth << " Hz\n";
+        m_SDRLog << "loFreq    =    " << loFreq << " Hz\n";
+        m_SDRLog << "hiFreq    =    " << hiFreq << " Hz\n";
+        m_SDRLog << "---------------------------------------\n\n";
+        #endif
+
     }
     else
     if( m_SDRMode == SDR_MODE_LSB )
     {
         float f0 = bandwidth/2.f;
-        float f1 = 200.f;
+        float f1 = 50.f;
         float f2 = f1+bandwidth;
 
         if( f0 > fmax ) f0 = fmax;
         if( f2 > fmax ) f2 = fmax;
 
-        m_FirFilter0->setBandwidth( f0 );
-        m_FirFilter1->setBandwidth( f2, f1 );
-        m_FilterFrequency = f0+f1;
+        m_FirFilter1->setDeemphLevel( -0 );
+        m_FirFilter1->setDeemphFmin ( f0 );
+        m_FirFilter1->setDeemphFmax ( f0 );
+
+        m_FirFilter0->setBandwidth( -f2, -f1 );
+        m_FirFilter1->setBandwidth( -f2, -f1 );
+        m_FilterFrequency = -(f0+f1);
         m_FilterToneShift = 0.f;
+
+        #if 1
+        m_SDRLog << "Mode: LSB ------------------------------\n";
+        m_SDRLog << "IF-Shift  =    " << m_FilterToneShift << " Hz\n";
+        m_SDRLog << "FLT-Shift =    " << m_FilterFrequency << " Hz\n";
+        m_SDRLog << "bandwidth = +/-" << bandwidth << " Hz\n";
+        m_SDRLog << "loFreq    =    " << f1 << " Hz\n";
+        m_SDRLog << "hiFreq    =    " << f2 << " Hz\n";
+        m_SDRLog << "---------------------------------------\n\n";
+        #endif
     }
     else
     if( m_SDRMode == SDR_MODE_USB )
     {
         float f0 = bandwidth/2.f;
-        float f1 = 200.f;
+        float f1 = 50.f;
         float f2 = f1+bandwidth;
 
         if( f0 > fmax ) f0 = fmax;
         if( f2 > fmax ) f2 = fmax;
 
-        m_FirFilter0->setBandwidth( f0 );
-        m_FirFilter1->setBandwidth( f2, f1 );
-        m_FilterFrequency = -(f0+f1);
+        m_FirFilter1->setDeemphLevel( -0 );
+        m_FirFilter1->setDeemphFmin ( f0 );
+        m_FirFilter1->setDeemphFmax ( f0 );
+
+        m_FirFilter0->setBandwidth( +f2, +f1 );
+        m_FirFilter1->setBandwidth( +f2, +f1 );
+        m_FilterFrequency = (f0+f1);
         m_FilterToneShift = 0.f;
+
+        #if 1
+        m_SDRLog << "Mode: USB ------------------------------\n";
+        m_SDRLog << "IF-Shift  =    " << m_FilterToneShift << " Hz\n";
+        m_SDRLog << "FLT-Shift =    " << m_FilterFrequency << " Hz\n";
+        m_SDRLog << "bandwidth = +/-" << bandwidth << " Hz\n";
+        m_SDRLog << "loFreq    =    " << f1 << " Hz\n";
+        m_SDRLog << "hiFreq    =    " << f2 << " Hz\n";
+        m_SDRLog << "---------------------------------------\n\n";
+        #endif
+
     }
     else
     if( m_SDRMode == SDR_MODE_AM  ||
@@ -249,11 +314,16 @@ void SDRAudio::setFilter( float bandwidth )
 
         if( f0 > fmax ) f0 = fmax;
 
-        m_FirFilter0->setBandwidth( f0     );
-        m_FirFilter1->setBandwidth( f0, f1 );
+        m_FirFilter1->setDeemphLevel( -0 );
+        m_FirFilter1->setDeemphFmin ( f0 );
+        m_FirFilter1->setDeemphFmax ( f0 );
+
+        m_FirFilter0->setBandwidth( -f0, +f0 );
+        m_FirFilter1->setBandwidth( +f1, +f0 );
         m_FilterFrequency = 0.f;
         m_FilterToneShift = 0.f;
         m_FilterBandwidth = f0;
+
     }
     else
     if( m_SDRMode == SDR_MODE_FM )
@@ -263,11 +333,28 @@ void SDRAudio::setFilter( float bandwidth )
 
         if( f0 > fmax ) f0 = fmax;
 
-        m_FirFilter0->setBandwidth( f0+2000 );
+        m_FirFilter1->setDeemphLevel( -6     );
+        m_FirFilter1->setDeemphFmin ( f0/4.f );
+        m_FirFilter1->setDeemphFmax ( f0     );
+
+        m_FirFilter0->setBandwidth( -(f0+0), +(f0+0) );
         m_FirFilter1->setBandwidth( f0, f1 );
         m_FilterFrequency = 0.f;
         m_FilterToneShift = 0.f;
         m_FilterBandwidth = f0;
+
+        #if 1
+        m_SDRLog << "Mode: FM ------------------------------\n";
+        m_SDRLog << "IF-Shift  =    " << m_FilterToneShift << " Hz\n";
+        m_SDRLog << "FLT-Shift =    " << m_FilterFrequency << " Hz\n";
+        m_SDRLog << "bandwidth = +/-" << bandwidth << " Hz\n";
+        m_SDRLog << "loFreq    =    " << f1 << " Hz\n";
+        m_SDRLog << "hiFreq    =    " << f0 << " Hz\n";
+        m_SDRLog << "DeemphFmin=    " << f0/4 << " Hz\n";
+        m_SDRLog << "DeemphFmax=    " << f0   << " Hz\n";
+        m_SDRLog << "DeemphAmnt=    " << -60  << " dB\n";
+        m_SDRLog << "---------------------------------------\n\n";
+        #endif
     }
 }
 

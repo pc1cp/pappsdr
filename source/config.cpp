@@ -7,6 +7,7 @@
 
 GlobalConfig::GlobalConfig()
 {
+    m_LoggingWindow = new GlobalLogging;
     m_AudioThread = 0;
 
     // initializing portaudio
@@ -198,6 +199,8 @@ GlobalConfig::GlobalConfig()
 
 GlobalConfig::~GlobalConfig()
 {
+    m_LoggingWindow->Close();
+    m_LoggingWindow->Destroy();
 }
 
 void GlobalConfig::chooseSoundDevices()
@@ -256,6 +259,19 @@ bool GlobalConfig::startAudioThread()
 
     // return true on success...
     return( true );
+}
+
+bool GlobalConfig::stopAudioThread()
+{
+    if( m_AudioThread && m_AudioThread->IsRunning() )
+    {
+        m_AudioThread->terminate();
+        while( m_AudioThread->IsRunning() )
+        {
+            wxMilliSleep( 100 );
+        }
+    }
+    return( false );
 }
 
 std::vector <AudioDevice_t> GlobalConfig::getOutputDevices()

@@ -82,6 +82,11 @@ FirFilter::FirFilter( double  sampleRate, double f0, double f1, int length )
 
     // clear ANF-Level (turn off)
     m_ANFLevel = 0.0;
+
+    // clear Deemphasizeband
+    m_DeemphaseAmount         =    0.0;
+    m_DeemphaseFrequencyStart = 1000.0;
+    m_DeemphaseFrequencyEnd   = 2000.0; 
 }
 
 FirFilter::~FirFilter()
@@ -114,21 +119,49 @@ void FirFilter::setBandwidth( double fMin, double fMax )
     double fMinIndex = floor( fMin / fDelta + 0.5 );
     double fMaxIndex = floor( fMax / fDelta + 0.5 );
 
-    for( int n=0; n<(m_FilterLength/2); ++n )
+    double fDeemphaseIndexMin = floor( m_DeemphaseFrequencyStart / fDelta + 0.5 );
+    double fDeemphaseIndexMax = floor( m_DeemphaseFrequencyEnd   / fDelta + 0.5 );
+    double fDeemphaseDelta    = fDeemphaseIndexMax - fDeemphaseIndexMin;
+
+    for( int m=-(m_FilterLength/2); m<+(m_FilterLength/2); ++m )
     {
-        if( n >= fMinIndex && n <= fMaxIndex )
+        int n = (m+m_FilterLength)%m_FilterLength;
+
+        float factor = 1.0;
+
+        if( m_DeemphaseAmount != 0.0f )
         {
-            m_CoefficientsFFT[n].r = 1.f/(float)m_FilterLength;
-            m_CoefficientsFFT[n].i = 1.f/(float)m_FilterLength;
-            m_CoefficientsFFT[m_FilterLength-1-n].r = 1.f/(float)m_FilterLength;
-            m_CoefficientsFFT[m_FilterLength-1-n].i = 1.f/(float)m_FilterLength;
+            if( fDeemphaseIndexMin > m )
+            {
+                factor = 1.0;
+            }
+            else
+            if( fDeemphaseIndexMax < m )
+            {
+                factor = pow( 10.0, m_DeemphaseAmount/20.0 );
+            }
+            else
+            {
+                double f1 = 1.0;
+                double f2 = pow( 10.0, m_DeemphaseAmount/20.0 );
+                double w  = ( m - fDeemphaseIndexMin ) / fDeemphaseDelta;
+                factor = f1*(1.0-w)+f2*(w);
+            }
+        }
+
+        if( m >= fMinIndex && m <= fMaxIndex )
+        {
+            m_CoefficientsFFT[n].r = factor/(float)m_FilterLength;
+            m_CoefficientsFFT[n].i = factor/(float)m_FilterLength;
+            //m_CoefficientsFFT[m_FilterLength-1-n].r = 1.f/(float)m_FilterLength;
+            //m_CoefficientsFFT[m_FilterLength-1-n].i = 1.f/(float)m_FilterLength;
         }
         else
         {
             m_CoefficientsFFT[n].r = 0.f;
             m_CoefficientsFFT[n].i = 0.f;
-            m_CoefficientsFFT[m_FilterLength-1-n].r = 0.f;
-            m_CoefficientsFFT[m_FilterLength-1-n].i = 0.f;
+            //m_CoefficientsFFT[m_FilterLength-1-n].r = 0.f;
+            //m_CoefficientsFFT[m_FilterLength-1-n].i = 0.f;
         }
     }
 }
@@ -150,65 +183,32 @@ ComplexSample FirFilter::update( ComplexSample input )
         {
             m_Out0[n].r *= m_CoefficientsFFT[n].r;
             m_Out0[n].i *= m_CoefficientsFFT[n].i;
-#if 1
-            //if( m_DeHummSet )
-            {
-                float amplitude = sqrtf( m_Out0[n].r * m_Out0[n].r + m_Out0[n].i * m_Out0[n].i );
-                m_Mean[n].r = m_Mean[n].r * 0.99 + 0.01 * amplitude;
-                m_Mean[n].i = atan2f( m_Out0[n].r , m_Out0[n].i );
 
-                //m_Out0[n].r = m_Mean[n].r*sinf(m_Mean[n].i);
-                //m_Out0[n].i = m_Mean[n].r*cosf(m_Mean[n].i);
-            }
-#endif
+            float amplitude = sqrtf( m_Out0[n].r * m_Out0[n].r + m_Out0[n].i * m_Out0[n].i );
+            m_Mean[n].r = m_Mean[n].r * 0.99 + 0.01 * amplitude;
+            m_Mean[n].i = atan2f( m_Out0[n].r , m_Out0[n].i );
         }
 
-        //if( m_DeHummSet )
+        for( int n=0; n<m_FilterLength; n++ )
         {
-            float mean = 0.f;
-            float max  = 0.f;
+            float amplitude = sqrtf( m_Out0[n].r * m_Out0[n].r + m_Out0[n].i * m_Out0[n].i );
 
-            for( int n=0; n<m_FilterLength; n++ )
+            amplitude -= m_Mean[n  ].r*m_DNRLevel;
+
+            amplitude  = (amplitude < 0.f)? 0.f:amplitude;
+
+            m_Out0[n].r = amplitude*sinf(m_Mean[n].i);
+            m_Out0[n].i = amplitude*cosf(m_Mean[n].i);
+
+            if( (m_Mean[n].r*m_ANFLevel) > m_Mean[(n-3)%m_FilterLength].r &&
+                (m_Mean[n].r*m_ANFLevel) > m_Mean[(n+3)%m_FilterLength].r )
             {
-                mean += m_Mean[n].r;
-                max   = max < m_Mean[n].r;
-            }
-
-            mean /= (float)m_FilterLength;
-            float contrast = 0.333f+(max+mean)/(max-mean);
-
-            for( int n=0; n<m_FilterLength; n++ )
-            {
-                float amplitude = sqrtf( m_Out0[n].r * m_Out0[n].r + m_Out0[n].i * m_Out0[n].i );
-
-                amplitude -= m_Mean[n  ].r*m_DNRLevel;
-
-                amplitude  = (amplitude < 0.f)? 0.f:amplitude;
-
-                m_Out0[n].r = amplitude*sinf(m_Mean[n].i);
-                m_Out0[n].i = amplitude*cosf(m_Mean[n].i);
-
-                //if(0)
-                if( (m_Mean[n].r*m_ANFLevel) > m_Mean[(n-3)%m_FilterLength].r &&
-                    (m_Mean[n].r*m_ANFLevel) > m_Mean[(n+3)%m_FilterLength].r )//&&
-                    //(m_Mean[n].r/1.5f) > m_Mean[(n-4)%m_FilterLength].r &&
-                    //(m_Mean[n].r/1.5f) > m_Mean[(n+4)%m_FilterLength].r &&
-                    //(m_Mean[n].r/1.5f) > m_Mean[(n-5)%m_FilterLength].r &&
-                    //(m_Mean[n].r/1.5f) > m_Mean[(n+5)%m_FilterLength].r &&
-                    //(m_Mean[n].r/1.5f) > m_Mean[(n-6)%m_FilterLength].r &&
-                    //(m_Mean[n].r/1.5f) > m_Mean[(n+6)%m_FilterLength].r &&
-                    //(m_Mean[n].r/1.5f) > m_Mean[(n-7)%m_FilterLength].r &&
-                    //(m_Mean[n].r/1.5f) > m_Mean[(n+7)%m_FilterLength].r &&
-                    //(m_Mean[n].r/1.5f) > m_Mean[(n-8)%m_FilterLength].r &&
-                    //(m_Mean[n].r/1.5f) > m_Mean[(n+8)%m_FilterLength].r )
-                {
-                    m_Out0[n-1].r = 0.f;
-                    m_Out0[n-1].i = 0.f;
-                    m_Out0[n  ].r = 0.f;
-                    m_Out0[n  ].i = 0.f;
-                    m_Out0[n+1].r = 0.f;
-                    m_Out0[n+1].i = 0.f;
-                }
+                m_Out0[n-1].r = 0.f;
+                m_Out0[n-1].i = 0.f;
+                m_Out0[n  ].r = 0.f;
+                m_Out0[n  ].i = 0.f;
+                m_Out0[n+1].r = 0.f;
+                m_Out0[n+1].i = 0.f;
             }
         }
 
@@ -223,65 +223,32 @@ ComplexSample FirFilter::update( ComplexSample input )
             m_Out2[n].r *= m_CoefficientsFFT[n].r;
             m_Out2[n].i *= m_CoefficientsFFT[n].i;
 
-#if 1
-            //if( m_DeHummSet )
-            {
-                float amplitude = sqrtf( m_Out2[n].r * m_Out2[n].r + m_Out2[n].i * m_Out2[n].i );
-                m_Mean[n].r = m_Mean[n].r * 0.99 + 0.01 * amplitude;
-                m_Mean[n].i = atan2f( m_Out2[n].r , m_Out2[n].i );
-
-                //m_Out2[n].r = m_Mean[n].r*sinf(m_Mean[n].i);
-                //m_Out2[n].i = m_Mean[n].r*cosf(m_Mean[n].i);
-            }
-#endif
+            float amplitude = sqrtf( m_Out2[n].r * m_Out2[n].r + m_Out2[n].i * m_Out2[n].i );
+            m_Mean[n].r = m_Mean[n].r * 0.99 + 0.01 * amplitude;
+            m_Mean[n].i = atan2f( m_Out2[n].r , m_Out2[n].i );
         }
 
-        //if( m_DeHummSet )
+        if(1)
+        for( int n=0; n<m_FilterLength; n++ )
         {
-            float mean = 0.f;
-            float max  = 0.f;
+            float amplitude = sqrtf( m_Out2[n].r * m_Out2[n].r + m_Out2[n].i * m_Out2[n].i );
 
-            for( int n=0; n<m_FilterLength; n++ )
+            amplitude -= m_Mean[n  ].r*m_DNRLevel;
+
+            amplitude  = (amplitude < 0.f)? 0.f:amplitude;
+
+            m_Out2[n].r = amplitude*sinf(m_Mean[n].i);
+            m_Out2[n].i = amplitude*cosf(m_Mean[n].i);
+
+            if( (m_Mean[n].r*m_ANFLevel) > m_Mean[(n-3)%m_FilterLength].r &&
+                (m_Mean[n].r*m_ANFLevel) > m_Mean[(n+3)%m_FilterLength].r )
             {
-                mean += m_Mean[n].r;
-                max   = max < m_Mean[n].r;
-            }
-
-            mean /= (float)m_FilterLength;
-            float contrast = 0.333f+(max+mean)/(max-mean);
-
-            for( int n=0; n<m_FilterLength; n++ )
-            {
-                float amplitude = sqrtf( m_Out2[n].r * m_Out2[n].r + m_Out2[n].i * m_Out2[n].i );
-
-                amplitude -= m_Mean[n  ].r*m_DNRLevel;
-
-                amplitude  = (amplitude < 0.f)? 0.f:amplitude;
-
-                m_Out2[n].r = amplitude*sinf(m_Mean[n].i);
-                m_Out2[n].i = amplitude*cosf(m_Mean[n].i);
-
-                //if(0)
-                if( (m_Mean[n].r*m_ANFLevel) > m_Mean[(n-3)%m_FilterLength].r &&
-                    (m_Mean[n].r*m_ANFLevel) > m_Mean[(n+3)%m_FilterLength].r )//&&
-                    //(m_Mean[n].r/1.5f) > m_Mean[(n-4)%m_FilterLength].r &&
-                    //(m_Mean[n].r/1.5f) > m_Mean[(n+4)%m_FilterLength].r &&
-                    //(m_Mean[n].r/1.5f) > m_Mean[(n-5)%m_FilterLength].r &&
-                    //(m_Mean[n].r/1.5f) > m_Mean[(n+5)%m_FilterLength].r &&
-                    //(m_Mean[n].r/1.5f) > m_Mean[(n-6)%m_FilterLength].r &&
-                    //(m_Mean[n].r/1.5f) > m_Mean[(n+6)%m_FilterLength].r &&
-                    //(m_Mean[n].r/1.5f) > m_Mean[(n-7)%m_FilterLength].r &&
-                    //(m_Mean[n].r/1.5f) > m_Mean[(n+7)%m_FilterLength].r &&
-                    //(m_Mean[n].r/1.5f) > m_Mean[(n-8)%m_FilterLength].r &&
-                    //(m_Mean[n].r/1.5f) > m_Mean[(n+8)%m_FilterLength].r )
-                {
-                    m_Out2[n-1].r = 0.f;
-                    m_Out2[n-1].i = 0.f;
-                    m_Out2[n  ].r = 0.f;
-                    m_Out2[n  ].i = 0.f;
-                    m_Out2[n+1].r = 0.f;
-                    m_Out2[n+1].i = 0.f;
-                }
+                m_Out2[n-1].r = 0.f;
+                m_Out2[n-1].i = 0.f;
+                m_Out2[n  ].r = 0.f;
+                m_Out2[n  ].i = 0.f;
+                m_Out2[n+1].r = 0.f;
+                m_Out2[n+1].i = 0.f;
             }
         }
 

@@ -42,55 +42,26 @@ IF( MSVC )
 	# to turn off Microsoft-Compiler-Extensions use this...
 	#SET( CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} /Za")
 	#SET( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Za")
+
+	# ==============================================================================
+	# Setup output directories
+	# ==============================================================================
+
+	SET( CMAKE_LIBRARY_OUTPUT_DIRECTORY         ${PAPPSDR_BINARY_DIR}/bin )
+	SET( CMAKE_RUNTIME_OUTPUT_DIRECTORY         ${PAPPSDR_BINARY_DIR}/bin )
+	SET( CMAKE_ARCHIVE_OUTPUT_DIRECTORY         ${PAPPSDR_BINARY_DIR}/bin )
+	SET( CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG   ${PAPPSDR_BINARY_DIR}/Debug )
+	SET( CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG   ${PAPPSDR_BINARY_DIR}/Debug )
+	SET( CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG   ${PAPPSDR_BINARY_DIR}/Debug )
+	SET( CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE ${PAPPSDR_BINARY_DIR}/Release )
+	SET( CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${PAPPSDR_BINARY_DIR}/Release )
+	SET( CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${PAPPSDR_BINARY_DIR}/Release )
+
 ENDIF( MSVC )
-
-# ==============================================================================
-# Copy files function
-# ==============================================================================
-
-FUNCTION(FILE_COPY target to_dir)
-    FILE(MAKE_DIRECTORY "${to_dir}")
-    SET(targets)
-    FOREACH(file ${ARGN})
-        GET_FILENAME_COMPONENT(file_name ${file} NAME)
-        IF("${to_dir}" STREQUAL "")
-            SET(to ${file_name})
-        ELSE()
-            SET(to "${to_dir}/${file_name}")
-        ENDIF()
-        ADD_CUSTOM_COMMAND(OUTPUT ${to}
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${file} ${to}
-        COMMAND ${CMAKE_COMMAND} -E touch_nocreate "${to}"
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-        MAIN_DEPENDENCY ${file}
-        COMMENT "Copy ${file} to ${to}")
-        SET(targets ${targets} ${to})
-    ENDFOREACH()
-    ADD_CUSTOM_TARGET(${target} DEPENDS ${targets})
-ENDFUNCTION()
-
-# ==============================================================================
-# Setup output directories
-# ==============================================================================
-
-#SET( CMAKE_LIBRARY_OUTPUT_DIRECTORY         ${PAPPSDR_BINARY_DIR}/bin )
-#SET( CMAKE_RUNTIME_OUTPUT_DIRECTORY         ${PAPPSDR_BINARY_DIR}/bin )
-#SET( CMAKE_ARCHIVE_OUTPUT_DIRECTORY         ${PAPPSDR_BINARY_DIR}/bin )
-#SET( CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG   ${PAPPSDR_BINARY_DIR}/bin )
-#SET( CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG   ${PAPPSDR_BINARY_DIR}/bin )
-#SET( CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG   ${PAPPSDR_BINARY_DIR}/bin )
-#SET( CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE ${PAPPSDR_BINARY_DIR}/bin )
-#SET( CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${PAPPSDR_BINARY_DIR}/bin )
-#SET( CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${PAPPSDR_BINARY_DIR}/bin )
-
-# ==============================================================================
 
 # build the library to acess the hardware
 ADD_SUBDIRECTORY   ( libpappradio )
 INCLUDE_DIRECTORIES( libpappradio/source/libpappradio/ )
-
-#MESSAGE( "SEARCH FOR FIX THIS!" )
-#INCLUDE_DIRECTORIES( libpappradio/source/hidapi-0.7.0/hidapi/ )
 
 ADD_SUBDIRECTORY   ( libsdraudio )
 INCLUDE_DIRECTORIES( libsdraudio )
@@ -108,8 +79,13 @@ IF(wxWidgets_FOUND)
         INCLUDE_DIRECTORIES( ${PORTAUDIO_INCLUDE_DIRS} )
         INCLUDE_DIRECTORIES( ${wxWidgets_INCLUDE_DIRS} )
         ADD_SUBDIRECTORY( source )
+    ELSE()
+        MESSAGE( "Libportaudio not found! Will not build frontend!")
     ENDIF()
+ELSE()
+    MESSAGE( "WxWidgets not found! Will not build frontend!")
 ENDIF()
+
 
 # ==============================================================================
 # Try to generate a deb-package for this...
