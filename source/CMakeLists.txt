@@ -49,7 +49,7 @@ MACRO( ADD_BINARY_RESOURCE FNAME )
     SET(RNAME "${PNAME}_${EXT}")
     SET(ONAME "${PNAME}_${EXT}.cpp")
 
-    MESSAGE("-- Adding binary resource \"${PNAME}.${EXT}\"." )
+    MESSAGE( STATUS "-- Adding binary resource \"${PNAME}.${EXT}\"." )
 
     ADD_CUSTOM_COMMAND( OUTPUT "${GENPATH}/${ONAME}"
                         COMMAND bin2c "${FNAME}" "${RNAME}" "${GENPATH}/${ONAME}"

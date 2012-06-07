@@ -75,15 +75,46 @@ FIND_PACKAGE( Portaudio )
 
 IF(wxWidgets_FOUND)
     IF(PORTAUDIO_FOUND)
+        # =====================================================================
+        # OK, we have found both: wxWidgets and portaudio. This allows us to 
+        # build the graphical front end.
+        # =====================================================================
+
         INCLUDE(${wxWidgets_USE_FILE})
         INCLUDE_DIRECTORIES( ${PORTAUDIO_INCLUDE_DIRS} )
         INCLUDE_DIRECTORIES( ${wxWidgets_INCLUDE_DIRS} )
         ADD_SUBDIRECTORY( source )
+
+        # to make it work from source, however we'd like to copy the portaudio
+        # DLL into the build-dir if under windows.
+        IF( WIN32 )
+            # path is the same as for PORTAUIO_LIBRARY except that it's not 
+            # portaudio_x86.lib we look for
+            STRING( REGEX REPLACE ".lib" ".dll" PORTAUDIO_DLL "${PORTAUDIO_LIBRARY}" )
+            MESSAGE( STATUS "USING THIS PORTAUDIO-DLL.: ${PORTAUDIO_DLL}" )
+            CONFIGURE_FILE( "${PORTAUDIO_DLL}" "${CMAKE_BINARY_DIR}/bin/" COPYONLY)
+
+            FIND_FILE( MSVC_C_RUNTIME_DLL "SysWOW64/msvcr100.dll" )
+            IF( !MSVC_C_RUNTIME_DLL )
+                FIND_FILE( MSVC_C_RUNTIME_DLL "msvcr100.dll" )
+            ENDIF()
+
+            FIND_FILE( MSVC_CPP_RUNTIME_DLL "SysWOW64/msvcp100.dll" )
+            IF( !MSVC_CPP_RUNTIME_DLL )
+                FIND_FILE( MSVC_CPP_RUNTIME_DLL "msvcp100.dll" )
+            ENDIF()
+
+            MESSAGE( STATUS "USING THIS MSVC-RUNTIME..: ${MSVC_C_RUNTIME_DLL}" )
+            MESSAGE( STATUS "USING THIS MSVCpp-RUNTIME: ${MSVC_CPP_RUNTIME_DLL}" )
+            CONFIGURE_FILE( "${MSVC_C_RUNTIME_DLL}" "${CMAKE_BINARY_DIR}/bin/" COPYONLY)
+            CONFIGURE_FILE( "${MSVC_CPP_RUNTIME_DLL}" "${CMAKE_BINARY_DIR}/bin/" COPYONLY)
+
+        ENDIF( WIN32 )
     ELSE()
-        MESSAGE( "Libportaudio not found! Will not build frontend!")
+        MESSAGE( FATAL "Libportaudio not found! Will not build frontend!")
     ENDIF()
 ELSE()
-    MESSAGE( "WxWidgets not found! Will not build frontend!")
+    MESSAGE( FATAL "WxWidgets not found! Will not build frontend!")
 ENDIF()
 
 
