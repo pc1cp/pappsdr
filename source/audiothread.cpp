@@ -20,8 +20,10 @@ AudioThread::AudioThread()
 :
     wxThread( wxTHREAD_JOINABLE )
 {
+    GlobalConfig* config = GlobalConfig::getInstance();
+
    	wxMutexLocker lock( m_ThreadMutex );
-	wxLogStatus( _("AudioThread::AudioThread();") );
+	config->Log( "AudioThread::AudioThread();" );
 
     m_SDRAudio = 0;
 
@@ -34,7 +36,7 @@ AudioThread::AudioThread()
     m_InputQueue.resize ( 1000000 );
     m_AudioFFTQueue.resize ( 1000000 );
 
-	wxLogStatus( _("    AudioQueues set up.") );
+	config->Log( "    AudioQueues set up." );
 
     // set initial AudioState to UNCONFIGURED/CLOSED
     m_AudioState = STATE_CLOSED;
@@ -42,9 +44,9 @@ AudioThread::AudioThread()
     // set Attenuator = 0.0 dB
     m_AttenuatorValue = 1.f;
 
-	wxLogStatus( _("        OutputQueue-Size = %i"),   m_OutputQueue.size() );
-	wxLogStatus( _("         InputQueue-Size = %i"),    m_InputQueue.size() );
-	wxLogStatus( _("       AF-FFT-Queue-Size = %i"), m_AudioFFTQueue.size() );
+	config->Log( "        OutputQueue-Size = %i",   m_OutputQueue.size() );
+	config->Log( "         InputQueue-Size = %i",    m_InputQueue.size() );
+	config->Log( "       AF-FFT-Queue-Size = %i", m_AudioFFTQueue.size() );
 }
 
 void AudioThread::terminate()
@@ -54,7 +56,8 @@ void AudioThread::terminate()
 
 void* AudioThread::Entry()
 {
-	wxLogStatus( _("AudioThread::Entry();") );
+	GlobalConfig* config = GlobalConfig::getInstance();
+    config->Log( "AudioThread::Entry();" );
     
     m_Done = false;
 
@@ -69,14 +72,14 @@ void* AudioThread::Entry()
         {
             case STATE_CLOSED:
             {
-                wxLogStatus( _("Audiothread-STATE: CLOSED") );
+                config->Log( "Audiothread-STATE: CLOSED" );
                 // closed ?!? Then try to configure it...
                 Configure();
                 break;
             }
             case STATE_OPEN:
             {
-                wxLogStatus( _("Audiothread-STATE: OPEN") );
+                config->Log( "Audiothread-STATE: OPEN" );
 
                 // Open, but not running? Then start it by all means...
                 int err=Pa_StartStream( m_PaStream );
@@ -90,17 +93,17 @@ void* AudioThread::Entry()
                 if( err == paNoError )
                 {
                     m_PaStreamIsActive = true;
-                    wxLogStatus( _("Audiothread-STATE: OPEN and Portaudio-Stream successfully started.") );
-                    wxLogStatus( _("                   Portaudio-Error-Code: %i "), err );
-                    wxLogStatus( _("                   Portaudio-Error-Text: %s "), Pa_GetErrorText( err ) );
+                    config->Log( "Audiothread-STATE: OPEN and Portaudio-Stream successfully started." );
+                    config->Log( "                   Portaudio-Error-Code: %i ", err );
+                    config->Log( "                   Portaudio-Error-Text: %s ", Pa_GetErrorText( err ) );
                     m_AudioState = STATE_RUNNING;
                 }
                 else
                 {
                     m_AudioState = STATE_ERROR;
-                    wxLogStatus( _("Audiothread-STATE: OPEN and Portaudio-Stream *NOT* successfully started.") );
-                    wxLogStatus( _("                   Portaudio-Error-Code: %i "), err );
-                    wxLogStatus( _("                   Portaudio-Error-Text: %s "), Pa_GetErrorText( err ) );
+                    config->Log( "Audiothread-STATE: OPEN and Portaudio-Stream *NOT* successfully started." );
+                    config->Log( "                   Portaudio-Error-Code: %i ", err );
+                    config->Log( "                   Portaudio-Error-Text: %s ", Pa_GetErrorText( err ) );
                 }
 
                 // change audio-state to running...
@@ -125,7 +128,7 @@ void* AudioThread::Entry()
                 // again
                 while( m_AudioState == STATE_ERROR )
                 {
-                    wxLogStatus( _("Audiothread-STATE: *** ERROR ***") );
+                    config->Log( "Audiothread-STATE: *** ERROR ***" );
 
                     // Check for reconfiguration-request...
                     m_ReconfigureLock.Lock();
@@ -150,7 +153,7 @@ void* AudioThread::Entry()
 
                 cnt = (cnt+1)%80;
                 if( cnt==0 )
-                wxLogStatus( _("Audiothread-STATE: RUNNING") );
+                config->Log( "Audiothread-STATE: RUNNING" );
 
                 // Check for reconfiguration-request...
                 m_ReconfigureLock.Lock();
@@ -182,7 +185,7 @@ void* AudioThread::Entry()
                         // try to get some information on the
                         // error...
                         const PaHostErrorInfo* errorInfo = Pa_GetLastHostErrorInfo();
-                        wxLogStatus( _("PaGetLastErrorInfo: %i %i %s"), (int)errorInfo->hostApiType, errorInfo->errorCode, errorInfo->errorText );
+                        config->Log( "PaGetLastErrorInfo: %i %i %s", (int)errorInfo->hostApiType, errorInfo->errorCode, errorInfo->errorText );
                     }
                 }
             }
@@ -212,8 +215,8 @@ void    AudioThread::Reconfigure()
 
 void    AudioThread::Configure()
 {
-	wxLogStatus( _("AudioThread::Configure();") );
     GlobalConfig* config = GlobalConfig::getInstance();
+    config->Log( "AudioThread::Configure();" );
 
     // Try to configure Audio-Hardware
     bool everythingIsOk = true;
@@ -230,9 +233,9 @@ void    AudioThread::Configure()
 
     m_SampleRate = config->getSampleRate();
 
-	wxLogStatus( _("Input-Device = %i"), PortaudioDeviceIndexIn );
-	wxLogStatus( _("Output-Device = %i"), PortaudioDeviceIndexOut );
-	wxLogStatus( _("Sample-Rate = %f"), m_SampleRate );
+    config->Log( "Input-Device  = %i", PortaudioDeviceIndexIn );
+    config->Log( "Output-Device = %i", PortaudioDeviceIndexOut );
+    config->Log( "Sample-Rate   = %f", m_SampleRate );
 
     // if we got a valid result, then open the output-device
     if( m_SampleRate > 0 and everythingIsOk )
@@ -248,8 +251,8 @@ void    AudioThread::Configure()
                                ->defaultLowInputLatency;
         double outputLatency = inputLatency;
 
-        std::cerr << "default-Latency-In : " <<  inputLatency*m_SampleRate << "\n";
-        std::cerr << "default-Latency-Out: " << outputLatency*m_SampleRate << "\n";
+        config->Log( "Latency-In  : %f seconds",  inputLatency*m_SampleRate );
+        config->Log( "Latency-Out : %f seconds", outputLatency*m_SampleRate );
 
         m_FramesPerBuffer = inputLatency*m_SampleRate/10.0;
 
@@ -276,12 +279,9 @@ void    AudioThread::Configure()
 
         if( err != paNoError )
         {
-            std::cerr << "\n*** \n";
-            std::cerr << "*** Portaudio-Error when opening Device:\n";
-            std::cerr << "*** \n";
-            std::cerr << "*** " << Pa_GetErrorText(err) << "\n";
-            std::cerr << "*** \n\n";
-			wxLogStatus( _("Error opening AudioDevice") );
+            config->Log( "*** Portaudio-Error, when opening Device:" );
+            config->Log( "*** %s", Pa_GetErrorText(err) );
+
             everythingIsOk = false;
         }
         else
@@ -291,9 +291,7 @@ void    AudioThread::Configure()
     }
     else
     {
-        std::cerr << "\n*** \n";
-        std::cerr << "*** Samplerate-Test failed on OutputDevice.\n";
-        std::cerr << "*** \n";
+        config->Log( "*** Samplerate-Test failed on Device." );
         everythingIsOk = false;
     }
 
@@ -303,7 +301,6 @@ void    AudioThread::Configure()
       	wxMutexLocker lock( m_ThreadMutex );
 
         m_AudioState = STATE_OPEN;
-        std::cerr << "Sample-Rate  = " << m_SampleRate << "\n";
 
         delete m_SDRAudio;
         m_SDRAudio = new SDRAudio( m_SampleRate );
@@ -322,7 +319,10 @@ void    AudioThread::Configure()
         // try to get some information on the
         // error...
         const PaHostErrorInfo* errorInfo = Pa_GetLastHostErrorInfo();
-        wxLogStatus( _("PaGetLastErrorInfo: %i %i %s"), (int)errorInfo->hostApiType, errorInfo->errorCode, errorInfo->errorText );
+        config->Log( "PaGetLastErrorInfo: %i %i %s", 
+                     (int)errorInfo->hostApiType, 
+                     errorInfo->errorCode, 
+                     errorInfo->errorText );
     }
 }
 
@@ -549,11 +549,13 @@ void AudioThread::setSquelchLevel( float level )
 
 void AudioThread::setAGCTime( double upTime, double downTime )
 {
+    GlobalConfig* config = GlobalConfig::getInstance();
+
 	wxMutexLocker lock( m_ThreadMutex );
     if( m_SDRAudio )
     {
         m_SDRAudio->setAGCTime( upTime, downTime  );
-        wxLogStatus( _("AGC-Uptime = %f"), upTime );
+        config->Log( "AGC-Uptime = %f", upTime );
     }
 }
 

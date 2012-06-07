@@ -32,9 +32,6 @@ SDRAudio::SDRAudio( float sampleRate )
     :
     m_SampleRate   ( sampleRate )
 {
-    m_SDRLog.open( "sdr_engine_log.txt", std::ios::out );
-    m_SDRLog << "SDR-Samplerate: " << m_SampleRate << "\n";
-
     m_TuneFrequency         =    0;
     m_FilterFrequency       = 1500;
     m_FilterBandwidth       = 1400;
@@ -218,33 +215,12 @@ void SDRAudio::setFilter( float bandwidth )
         if( hiFreq <    0.f ) hiFreq =    0.f;
         if( hiFreq > 6000.f ) hiFreq = 6000.f;
 
-        #if 1
-        m_SDRLog << "Mode: CW ------------------------------\n";
-        m_SDRLog << "IF-Shift  =    " << m_FilterToneShift << " Hz\n";
-        m_SDRLog << "FLT-Shift =    " << m_FilterFrequency << " Hz\n";
-        m_SDRLog << "bandwidth = +/-" << bandwidth << " Hz\n";
-        m_SDRLog << "loFreq    =    " << loFreq << " Hz\n";
-        m_SDRLog << "hiFreq    =    " << hiFreq << " Hz\n";
-        m_SDRLog << "---------------------------------------\n\n";
-        #endif
-
         m_FirFilter1->setDeemphLevel( -0 );
         m_FirFilter1->setDeemphFmin ( hiFreq );
         m_FirFilter1->setDeemphFmax ( hiFreq );
 
         m_FirFilter0->setBandwidth( -bandwidth, +bandwidth );
         m_FirFilter1->setBandwidth( loFreq, hiFreq );
-
-        #if 1
-        m_SDRLog << "Mode: CW ------------------------------\n";
-        m_SDRLog << "IF-Shift  =    " << m_FilterToneShift << " Hz\n";
-        m_SDRLog << "FLT-Shift =    " << m_FilterFrequency << " Hz\n";
-        m_SDRLog << "bandwidth = +/-" << bandwidth << " Hz\n";
-        m_SDRLog << "loFreq    =    " << loFreq << " Hz\n";
-        m_SDRLog << "hiFreq    =    " << hiFreq << " Hz\n";
-        m_SDRLog << "---------------------------------------\n\n";
-        #endif
-
     }
     else
     if( m_SDRMode == SDR_MODE_LSB )
@@ -264,16 +240,6 @@ void SDRAudio::setFilter( float bandwidth )
         m_FirFilter1->setBandwidth( -f2, -f1 );
         m_FilterFrequency = -(f0+f1);
         m_FilterToneShift = 0.f;
-
-        #if 1
-        m_SDRLog << "Mode: LSB ------------------------------\n";
-        m_SDRLog << "IF-Shift  =    " << m_FilterToneShift << " Hz\n";
-        m_SDRLog << "FLT-Shift =    " << m_FilterFrequency << " Hz\n";
-        m_SDRLog << "bandwidth = +/-" << bandwidth << " Hz\n";
-        m_SDRLog << "loFreq    =    " << f1 << " Hz\n";
-        m_SDRLog << "hiFreq    =    " << f2 << " Hz\n";
-        m_SDRLog << "---------------------------------------\n\n";
-        #endif
     }
     else
     if( m_SDRMode == SDR_MODE_USB )
@@ -293,17 +259,6 @@ void SDRAudio::setFilter( float bandwidth )
         m_FirFilter1->setBandwidth( +f2, +f1 );
         m_FilterFrequency = (f0+f1);
         m_FilterToneShift = 0.f;
-
-        #if 1
-        m_SDRLog << "Mode: USB ------------------------------\n";
-        m_SDRLog << "IF-Shift  =    " << m_FilterToneShift << " Hz\n";
-        m_SDRLog << "FLT-Shift =    " << m_FilterFrequency << " Hz\n";
-        m_SDRLog << "bandwidth = +/-" << bandwidth << " Hz\n";
-        m_SDRLog << "loFreq    =    " << f1 << " Hz\n";
-        m_SDRLog << "hiFreq    =    " << f2 << " Hz\n";
-        m_SDRLog << "---------------------------------------\n\n";
-        #endif
-
     }
     else
     if( m_SDRMode == SDR_MODE_AM  ||
@@ -323,7 +278,6 @@ void SDRAudio::setFilter( float bandwidth )
         m_FilterFrequency = 0.f;
         m_FilterToneShift = 0.f;
         m_FilterBandwidth = f0;
-
     }
     else
     if( m_SDRMode == SDR_MODE_FM )
@@ -342,19 +296,6 @@ void SDRAudio::setFilter( float bandwidth )
         m_FilterFrequency = 0.f;
         m_FilterToneShift = 0.f;
         m_FilterBandwidth = f0;
-
-        #if 1
-        m_SDRLog << "Mode: FM ------------------------------\n";
-        m_SDRLog << "IF-Shift  =    " << m_FilterToneShift << " Hz\n";
-        m_SDRLog << "FLT-Shift =    " << m_FilterFrequency << " Hz\n";
-        m_SDRLog << "bandwidth = +/-" << bandwidth << " Hz\n";
-        m_SDRLog << "loFreq    =    " << f1 << " Hz\n";
-        m_SDRLog << "hiFreq    =    " << f0 << " Hz\n";
-        m_SDRLog << "DeemphFmin=    " << f0/4 << " Hz\n";
-        m_SDRLog << "DeemphFmax=    " << f0   << " Hz\n";
-        m_SDRLog << "DeemphAmnt=    " << -60  << " dB\n";
-        m_SDRLog << "---------------------------------------\n\n";
-        #endif
     }
 }
 

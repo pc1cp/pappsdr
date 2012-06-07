@@ -8,6 +8,7 @@
 #include "wx/thread.h"
 #include "wx/config.h"
 #include "wx/fileconf.h"
+#include "wx/datetime.h"
 //#include "wx/msw/regconf.h"
 #include "audiothread.hpp"
 
@@ -122,8 +123,6 @@ class ConfigRegistry
                         _("10000")              ).ToDouble
                         ( &m_VFOFrequency );
 
-        wxLogStatus( _("VFO-Frequency read back: %f"), m_VFOFrequency );
-
         m_AudioInputDevice.Name  = m_Config->Read( _("AudioInputDeviceName"),
                                                    _("") );
 
@@ -215,21 +214,61 @@ class GlobalLogging : public wxFrame
     : wxFrame(NULL, wxID_ANY, _("PappSDR-Logging") )
     {
         wxBoxSizer* topSizer = new wxBoxSizer( wxVERTICAL );
-        m_TextCtrl = new wxTextCtrl( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(640,480), 0L );
+        m_TextCtrl = new wxTextCtrl( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(640,480), wxTE_MULTILINE );
         topSizer->Add( m_TextCtrl );
         SetSizerAndFit( topSizer );
         Show();
+        m_LogFile.open( "PappSDR_LogFile.txt", std::ios::out );
+        m_Timer = new wxTimer( this, 0 );
+        m_Timer->Start( 100 );
     }
 
-    virtual ~GlobalLogging(){};
+    virtual ~GlobalLogging()
+    {
+        m_LogFile.close();
+    }
 
-//    void logMessage( wxString    text );
-//    void logMessage( std::string text );
-//    void logMessage( char* const text );
+    void logMessage( std::string text )
+    {
+        wxDateTime thisTime = wxDateTime::GetTimeNow();
+        wxDateTime::wxDateTime_t hour   = thisTime.GetHour  ();
+        wxDateTime::wxDateTime_t minute = thisTime.GetMinute();
+        wxDateTime::wxDateTime_t second = thisTime.GetSecond();
+
+        wxString timeStamp;
+        timeStamp.Printf( _("[ %02i:%02i:%02i ]   "), hour, minute, second );
+        wxMutexLocker lock( m_LogMutex );
+        m_LogFile << timeStamp.c_str() << text;
+        m_MessageStack.push_back( std::string(timeStamp.c_str())+text );
+    }
+
+    void onTimer( wxTimerEvent& WXUNUSED(event) )
+    {
+        wxMutexLocker lock( m_LogMutex );
+        for( unsigned int n=0; n<m_MessageStack.size(); ++n )
+        {
+            *m_TextCtrl << m_MessageStack[n] << "\n";
+        }
+        m_MessageStack.clear();
+    }
+
+    void onClose( wxCloseEvent& WXUNUSED(event) )
+    {
+        // do not(!) close this window. Just hide it.
+        Hide();
+    }
 
     private:
     wxMutex         m_LogMutex;
     wxTextCtrl*     m_TextCtrl;
+
+    std::vector<std::string> m_MessageStack;
+
+    wxTimer*        m_Timer;
+
+    std::fstream    m_LogFile;
+
+    DECLARE_EVENT_TABLE();
 };
 
 class GlobalConfig
@@ -309,6 +348,20 @@ class GlobalConfig
 
     void        setCurrentVFOFrequency( double frequency ){ m_Registry.setCurrentVFOFrequency(frequency); }
     int         getCurrentVFOFrequency(){ return ( m_Registry.getCurrentVFOFrequency() ); }
+
+    void        Log( const char* format, ... )
+    {
+        size_t  n = 2048;
+        char    buffer[2049];
+        va_list va;
+        va_start(va, format);
+        vsnprintf( buffer, n, format, va );
+        va_end(va);
+        if( m_LoggingWindow )
+        { 
+            m_LoggingWindow->logMessage( std::string( buffer ) );
+        }
+    }
 
     private:
 

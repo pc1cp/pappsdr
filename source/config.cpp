@@ -5,6 +5,11 @@
 
 #include <ciso646>
 
+BEGIN_EVENT_TABLE(GlobalLogging, wxFrame)
+    EVT_TIMER  ( 0, GlobalLogging::onTimer )
+    EVT_CLOSE  ( GlobalLogging::onClose )
+END_EVENT_TABLE()
+
 GlobalConfig::GlobalConfig()
 {
     m_LoggingWindow = new GlobalLogging;
@@ -15,8 +20,7 @@ GlobalConfig::GlobalConfig()
 
     if( err != paNoError )
     {
-        std::cerr << "Error initializing Portaudio: " << Pa_GetErrorText( err )
-                  << "\n";
+        Log( "Error initializing Portaudio: %s", Pa_GetErrorText( err ) );
         exit(-1);
     }
 
@@ -26,10 +30,8 @@ GlobalConfig::GlobalConfig()
     nDevices = Pa_GetDeviceCount();
     if( nDevices < 0 )
     {
-        wxLogStatus( _("Error, Pa_CountDevices returned : %i"), nDevices );
-        err = nDevices;
-        std::cerr << "Error initializing Portaudio: " << Pa_GetErrorText( err )
-                  << "\n";
+        Log( "Error, Pa_CountDevices returned : %i", nDevices );
+        Log( "Error initializing Portaudio: %s", Pa_GetErrorText( nDevices ));
         exit(-1);
     }
     else
@@ -42,13 +44,13 @@ GlobalConfig::GlobalConfig()
         for( int i=0; i<nDevices; i++ )
         {
             DeviceInfo = Pa_GetDeviceInfo( i );
-			wxLogStatus( _("Device-Index: %i"), i );
-			wxLogStatus( _("Device-Name: %s"), DeviceInfo->name );
-			wxLogStatus( _("Device-Max-Input-Channels: %i"), DeviceInfo->maxInputChannels );
-			wxLogStatus( _("Device-Max-Output-Channels: %i"), DeviceInfo->maxOutputChannels );
+			Log( "Device-Index: %i", i );
+			Log( "Device-Name: %s", DeviceInfo->name );
+			Log( "Device-Max-Input-Channels: %i", DeviceInfo->maxInputChannels );
+			Log( "Device-Max-Output-Channels: %i", DeviceInfo->maxOutputChannels );
 			const PaHostApiInfo* HostApiInfo = Pa_GetHostApiInfo( DeviceInfo->hostApi );
-			wxLogStatus( _("Device-Host-API: %s"), HostApiInfo->name );
-			wxLogStatus( _(" ") );
+			Log( "Device-Host-API: %s", HostApiInfo->name );
+			Log( " " );
 		}
 
         // Build up list of usable output devices...
@@ -179,7 +181,7 @@ GlobalConfig::GlobalConfig()
     {
         if( lastInputDevice == m_AudioInputDevices[i].Name )
         {
-            wxLogStatus( _("Last-In-Index: %i"), m_AudioInputDevices[i].NumericID );
+            Log( "Last-In-Index: %i", m_AudioInputDevices[i].NumericID );
             m_InputDeviceIndex = i;
             break;
         }
@@ -190,7 +192,7 @@ GlobalConfig::GlobalConfig()
     {
         if( lastOutputDevice == m_AudioOutputDevices[i].Name )
         {
-            wxLogStatus( _("Last-Out-Index: %i"), m_AudioOutputDevices[i].NumericID );
+            Log( "Last-Out-Index: %i", m_AudioOutputDevices[i].NumericID );
             m_OutputDeviceIndex = i;
             break;
         }
@@ -199,20 +201,11 @@ GlobalConfig::GlobalConfig()
 
 GlobalConfig::~GlobalConfig()
 {
-    m_LoggingWindow->Close();
-    m_LoggingWindow->Destroy();
 }
 
 void GlobalConfig::chooseSoundDevices()
 {
     bool lastState = m_AudioIsConfigured;
-
-    //MySoundDeviceDialog SoundDeviceDialog(0);
-    //
-    //if ( SoundDeviceDialog.ShowModal() == wxID_OK )
-    //{
-    //    std::cerr << "OK pressed\n";
-    //}
 
     wxCustomConfigDialog configDialog;
     configDialog.ShowModal();
@@ -242,7 +235,7 @@ bool GlobalConfig::startAudioThread()
     m_AudioThread = new AudioThread();
     if( m_AudioThread->Create() != wxTHREAD_NO_ERROR )
     {
-        wxLogStatus( _("Can't create audio-thread.") );
+        Log( "Can't create audio-thread." );
         return( false );
     }
 
@@ -253,7 +246,7 @@ bool GlobalConfig::startAudioThread()
     // ... and really start it ...
     if( m_AudioThread->Run() != wxTHREAD_NO_ERROR)
     {
-        wxLogStatus( _("Can't start audio-thread." ) );
+        Log( "Can't start audio-thread." );
         return( false );
     }
 
@@ -271,6 +264,10 @@ bool GlobalConfig::stopAudioThread()
             wxMilliSleep( 100 );
         }
     }
+
+    m_LoggingWindow->Close();
+    m_LoggingWindow->Destroy();
+
     return( false );
 }
 
@@ -328,14 +325,14 @@ double GlobalConfig::getProcessingSampleRate()
 
 void GlobalConfig::setOutputDevice(int index)
 {
-    std::cerr << "Output-Device-Index: " << index << "\n";
+    Log( "GlobalConfig::setOutputDevice(%i);", index );
     m_Registry.setOutputDevice( m_AudioOutputDevices[index].Name );
     m_OutputDeviceIndex=index;
 }
 
 void GlobalConfig::setInputDevice(int index)
 {
-    std::cerr << "Input-Device-Index: " << index << "\n";
+    Log( "GlobalConfig::setInputDevice(%i);", index );
     m_Registry.setInputDevice( m_AudioInputDevices[index].Name );
     m_InputDeviceIndex=index;
 }

@@ -8,13 +8,12 @@ class MyApp : public wxApp
     virtual bool OnInit();
     virtual int  OnExit();
     Pappradio* m_Pappradio;
-    wxLogWindow* m_LogWindow;
 };
 
 class MyFrame : public wxFrame
 {
     public:
-    MyFrame(const wxString& title, Pappradio* pappradio, wxLogWindow* logwindow );
+    MyFrame(const wxString& title, Pappradio* pappradio );
     virtual ~MyFrame();
 
     void OnLoFreqChanged( wxCommandEvent& event );
@@ -140,7 +139,6 @@ class MyFrame : public wxFrame
     wxCustomPushButton* m_PushButtonDNROff;
     wxCustomPushButton* m_PushButtonDNROn;
 
-    wxLogWindow*        m_LogWindow;
     Pappradio*          m_Pappradio;
     AudioThread*        m_AudioThread;
     DECLARE_EVENT_TABLE()
@@ -257,8 +255,7 @@ IMPLEMENT_APP(MyApp)
 
 bool MyApp::OnInit()
 {
-	m_LogWindow = new wxLogWindow( 0, _("Logging") );
-	m_LogWindow->Show();
+    GlobalConfig* config = GlobalConfig::getInstance();
 
     // We do not want to have only BMPs...
     wxInitAllImageHandlers();
@@ -278,7 +275,6 @@ bool MyApp::OnInit()
 			}
         }
     }
-	wxLogStatus( _("fqdata.dat loaded") );
 
     result = m_Pappradio->open();
 
@@ -288,30 +284,30 @@ bool MyApp::OnInit()
         {
             case Pappradio::ERR_INIT_FQDATA:
             {
-                std::cerr << "*** ERROR: Loading fqdata.dat failed.\n"
-                          << std::endl;
+                config->Log( "*** ERROR: Loading fqdata.dat failed." );
                 break;
             }
-            case Pappradio::ERR_NONE:
+            case Pappradio::ERR_NOT_FOUND:
             {
-                std::cerr << "*** SUCCESS: Pappradio opened.\n"
-                          << std::endl;
+                config->Log( "*** ERROR: Pappradio not found on USB." );
+                break;
+            }
+            case Pappradio::ERR_PRODUCT_MISMATCH:
+            {
+                config->Log( "*** ERROR: Unsupported hardware-version." );
                 break;
             }
         }
-        //return false;
+    }
+    else
+    {
+        config->Log( "*** SUCCESS: Pappradio opened." );
     }
 
-    //m_Pappradio->setFilter( Pappradio::BP_04000_07500 );
-    //m_Pappradio->setFilter( Pappradio::BP_02400_04000 );
-    //m_Pappradio->setAttenuator( Pappradio::ATT00 );
-    //m_Pappradio->setFrequency( 7100000 );
-
-    GlobalConfig* config = GlobalConfig::getInstance();
     config->startAudioThread();
-	wxLogStatus( _("Audiothread started.") );
+	config->Log( "Audiothread started." );
 
-    MyFrame *frame = new MyFrame( wxT("Pappradio SDR"), m_Pappradio, m_LogWindow );
+    MyFrame *frame = new MyFrame( wxT("Pappradio SDR"), m_Pappradio );
     frame->Show(true);
 
     return true;
@@ -324,10 +320,9 @@ int MyApp::OnExit()
 }
 
 #include "wx/mstream.h"
-MyFrame::MyFrame(const wxString& title, Pappradio* pappradio, wxLogWindow* logwindow )
+MyFrame::MyFrame(const wxString& title, Pappradio* pappradio )
   : wxFrame(NULL, wxID_ANY, title),
-  m_Pappradio( pappradio ),
-  m_LogWindow( logwindow )
+  m_Pappradio( pappradio )
 {
     //#if defined(__WXGTK__) || defined(__WXMOTIF__)
     {
@@ -553,7 +548,7 @@ MyFrame::MyFrame(const wxString& title, Pappradio* pappradio, wxLogWindow* logwi
 
     double frequencyLO  = config->getCurrentLOFrequency();
     double frequencyVFO = config->getCurrentVFOFrequency();
-    wxLogStatus( _("read back VFO is: %f"), frequencyVFO );
+    config->Log( "read back VFO is: %f", frequencyVFO );
 
     m_Pappradio->setFrequency( frequencyLO );
     config->setTune( frequencyVFO );
@@ -793,7 +788,6 @@ void MyFrame::onClose( wxCloseEvent& WXUNUSED(event) )
     config->stopAudioThread();
     //wxMessageBox( _("onClose") );
     m_Timer->Stop();
-    m_LogWindow->GetFrame()->Destroy();
     this->Destroy();
 }
 
@@ -1305,11 +1299,11 @@ void MyFrame::updateFrequencyDisplay()
 
 void MyFrame::OnLoFreqChanged( wxCommandEvent& WXUNUSED(event) )
 {
-    wxLogDebug( _("LO-Freq-changed-Event") );
     GlobalConfig* config = GlobalConfig::getInstance();
 
-    std::cerr << "LO-Changed\n";
-    std::cerr << "Target-f : " << m_LCDisplay->getLOFreq() << "\n";
+    config->Log( "MyFrame::OnLoFreqChanged();" );
+    config->Log( "        Target-Frequency: %i ", m_LCDisplay->getLOFreq() );
+
     m_Pappradio->setFrequency( (double)m_LCDisplay->getLOFreq() );
     config->setCurrentLOFrequency( m_Pappradio->getFrequency() );
 
@@ -1319,7 +1313,7 @@ void MyFrame::OnLoFreqChanged( wxCommandEvent& WXUNUSED(event) )
     // update displayed frequencies
     updateFrequencyDisplay();
 
-    std::cerr << "Real-f : " << m_Pappradio->getFrequency() << "\n";
+    config->Log( "          Real-Frequency: %f \n", m_Pappradio->getFrequency() );
 }
 
 void MyFrame::onButtonANFOFF( wxCommandEvent& WXUNUSED(event) )
@@ -1381,9 +1375,9 @@ void MyFrame::onMouseWheel( wxMouseEvent& event )
 
 void MyFrame::OnFreqChanged( wxCommandEvent& WXUNUSED(event) )
 {
-    wxLogDebug( _("VFO-Freq-changed-Event") );
-
     GlobalConfig* config = GlobalConfig::getInstance();
+
+    config->Log( "MyFrame::OnFreqChanged(); [VFO-Freq]" );
 
     config->setTune( m_LCDisplay->getFreq() );
     config->setCurrentVFOFrequency( m_LCDisplay->getFreq() );
@@ -1391,12 +1385,13 @@ void MyFrame::OnFreqChanged( wxCommandEvent& WXUNUSED(event) )
     // update displayed frequencies
     updateFrequencyDisplay();
 
-    std::cerr << "Freq-Changed : " << m_LCDisplay->getFreq() << "\n";
+    config->Log(  "        VFO-Freq-Changed : %i\n", m_LCDisplay->getFreq() );
 }
 
 void MyFrame::onFFTClicked( wxCommandEvent& event )
 {
     GlobalConfig* config = GlobalConfig::getInstance();
+    config->Log( "MyFrame::onFFTClicked(); [VFO-Freq]" );
 
     double newTuneFrequency = ((double)event.GetInt()/1024.f)*
                               config->getInputSampleRate();
@@ -1415,7 +1410,7 @@ void MyFrame::onFFTClicked( wxCommandEvent& event )
     config->setTune( newTuneFrequency );
     m_FFTDisplayRF->setTune( newTuneFrequency );
 
-    std::cerr << "Freq-Changed(clicked) : " << newTuneFrequency << "\n";
+    config->Log( "        VFO-Freq-Changed : %i\n", m_LCDisplay->getFreq() );
 
     config->setCurrentLOFrequency ( m_Pappradio->getFrequency() );
     config->setCurrentVFOFrequency( m_LCDisplay->getFreq()      );

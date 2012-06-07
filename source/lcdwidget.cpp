@@ -125,14 +125,16 @@ wxCustomLCDisplay::~wxCustomLCDisplay()
 
 void wxCustomLCDisplay::onEnter( wxMouseEvent& WXUNUSED(event) )
 {
-    wxLogStatus( _("Entered LCDisplay-Widget. Focus Set.") );
+    GlobalConfig* config = GlobalConfig::getInstance();
+    config->Log( "Entered LCDisplay-Widget. Focus Set." );
     this->SetFocus();
     m_HasFocus = true;
 }
 
 void wxCustomLCDisplay::onLeave( wxMouseEvent& WXUNUSED(event) )
 {
-    wxLogStatus( _("Left LCDisplay-Widget. Focus Set.") );
+    GlobalConfig* config = GlobalConfig::getInstance();
+    config->Log( "Left LCDisplay-Widget. Focus Set." );
     m_Parent->SetFocus();
     m_HasFocus = false;
 }
