@@ -17,7 +17,7 @@ IF(UNIX)
                      #-Wextra
                      #-Werror
                      -O3
-                     #-g
+                     -g
                      #-pg
                      -march=native
                      -msse2
@@ -76,7 +76,7 @@ FIND_PACKAGE( Portaudio )
 IF(wxWidgets_FOUND)
     IF(PORTAUDIO_FOUND)
         # =====================================================================
-        # OK, we have found both: wxWidgets and portaudio. This allows us to 
+        # OK, we have found both: wxWidgets and portaudio. This allows us to
         # build the graphical front end.
         # =====================================================================
 
@@ -88,7 +88,7 @@ IF(wxWidgets_FOUND)
         # to make it work from source, however we'd like to copy the portaudio
         # DLL into the build-dir if under windows.
         IF( WIN32 )
-            # path is the same as for PORTAUIO_LIBRARY except that it's not 
+            # path is the same as for PORTAUIO_LIBRARY except that it's not
             # portaudio_x86.lib we look for
             STRING( REGEX REPLACE ".lib" ".dll" PORTAUDIO_DLL "${PORTAUDIO_LIBRARY}" )
             MESSAGE( STATUS "USING THIS PORTAUDIO-DLL.: ${PORTAUDIO_DLL}" )
