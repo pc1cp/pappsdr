@@ -13,8 +13,8 @@ AutomaticGainControl::AutomaticGainControl( double samplerate,
     m_Level3(1.f),
     m_DataPosition(0)
 {
-    m_LimitLevel  = powf(10.f,-3.f/20.f);
-    m_TargetLevel = powf(10.f,-9.f/20.f);
+    m_LimitLevel  = powf(10.f,-6.f/20.f);
+    m_TargetLevel = powf(10.f,-6.f/20.f);
 
     m_DataLength = (int)(m_SampleRate/5.0);
     m_Data = new ComplexSample[ m_DataLength ];
@@ -34,11 +34,12 @@ void AutomaticGainControl::setTime( double time )
     std::cerr << "AGC-SampleRate:" << m_SampleRate << std::endl;
 
     double nrOfSamplesUp   = (double)m_SampleRate * time;
+    double nrOfSamplesDown = (double)m_SampleRate * (time/2.0);
     std::cerr << "AGC-Samples:" << nrOfSamplesUp << std::endl;
 
-    // +6/-24 dB in specified Time
-    m_GainUp   =     pow( 2.00, 1.0/nrOfSamplesUp   );
-    m_GainDown = 1.0/pow( 8.00, 1.0/nrOfSamplesUp   );
+    // +12/-12 dB in specified Time
+    m_GainUp   =     pow( 4.00, 1.0/nrOfSamplesUp   );
+    m_GainDown = 1.0/pow( 4.00, 1.0/nrOfSamplesDown );
 
     std::cerr << "AGC-GainUp...:" << m_GainUp << std::endl;
     std::cerr << "AGC-GainDown.:" << m_GainUp << std::endl;
