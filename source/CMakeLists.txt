@@ -27,7 +27,9 @@ SET( SOURCES    main.hpp
                 configdialog.cpp
                 configdialog.hpp
 				spinctrl.cpp
-				spinctrl.hpp )
+				spinctrl.hpp
+				levelmeter.hpp
+				levelmeter.cpp )
 
 IF(WIN32)
 	SET( SOURCES ${SOURCES} main.rc )
@@ -68,6 +70,8 @@ ADD_BINARY_RESOURCE( "${ARTPATH}/LCD_foreground.png" )
 ADD_BINARY_RESOURCE( "${ARTPATH}/LCD_largenumbers.png" )
 ADD_BINARY_RESOURCE( "${ARTPATH}/LCD_smallnumbers.png" )
 ADD_BINARY_RESOURCE( "${ARTPATH}/separator.png" )
+ADD_BINARY_RESOURCE( "${ARTPATH}/levelmeter.png" )
+ADD_BINARY_RESOURCE( "${ARTPATH}/levelmeter_active.png" )
 ADD_BINARY_RESOURCE( "${ARTPATH}/Icon.png" )
 
 # we would like to build a program
