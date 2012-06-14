@@ -86,7 +86,7 @@ FirFilter::FirFilter( double  sampleRate, double f0, double f1, int length )
     // clear Deemphasizeband
     m_DeemphaseAmount         =    0.0;
     m_DeemphaseFrequencyStart = 1000.0;
-    m_DeemphaseFrequencyEnd   = 2000.0; 
+    m_DeemphaseFrequencyEnd   = 2000.0;
 }
 
 FirFilter::~FirFilter()
@@ -185,7 +185,7 @@ ComplexSample FirFilter::update( ComplexSample input )
             m_Out0[n].i *= m_CoefficientsFFT[n].i;
 
             float amplitude = sqrtf( m_Out0[n].r * m_Out0[n].r + m_Out0[n].i * m_Out0[n].i );
-            m_Mean[n].r = m_Mean[n].r * 0.99 + 0.01 * amplitude;
+            m_Mean[n].r = m_Mean[n].r * 0.995 + 0.005 * amplitude;
             m_Mean[n].i = atan2f( m_Out0[n].r , m_Out0[n].i );
         }
 
@@ -224,7 +224,7 @@ ComplexSample FirFilter::update( ComplexSample input )
             m_Out2[n].i *= m_CoefficientsFFT[n].i;
 
             float amplitude = sqrtf( m_Out2[n].r * m_Out2[n].r + m_Out2[n].i * m_Out2[n].i );
-            m_Mean[n].r = m_Mean[n].r * 0.99 + 0.01 * amplitude;
+            m_Mean[n].r = m_Mean[n].r * 0.995 + 0.005 * amplitude;
             m_Mean[n].i = atan2f( m_Out2[n].r , m_Out2[n].i );
         }
 
