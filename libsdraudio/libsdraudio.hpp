@@ -24,6 +24,9 @@
 #define __LIBSDRAUDIO_HPP__
 
 #include <fstream>
+#include <cstdlib>
+#include "kiss_fft.h"
+#include <iostream>
 
 // forward declarations of some classes
 
@@ -131,10 +134,10 @@ class SDRAudio
    ~SDRAudio();
 
     void setTune( float frequency )
-    { 
-        double delta = abs( m_TuneFrequency - frequency );
+    {
+        double delta = fabs( m_TuneFrequency - frequency );
         m_TargetTune = frequency;
-        
+
         m_TuneIncrement = delta/(m_SampleRate*0.25);
 
         if( delta < 200 )
@@ -163,6 +166,100 @@ class SDRAudio
 
     void   setANF( double value );
     void   setDNR( double value );
+
+
+    inline void correctIQImbalance( ComplexSample& sample,
+                                    float IQPhaseCorrection,
+                                    float IQAmplitudeCorrection)
+    {
+        sample.setI( sample.getI() + IQPhaseCorrection * sample.getQ() );
+        sample.setQ( sample.getQ() * (1.0+IQAmplitudeCorrection) );
+    }
+
+    inline void correctIQImbalance( ComplexSample& sample )
+    {
+        correctIQImbalance( sample,
+                            m_IQPhaseCorrection,
+                            m_IQAmplitudeCorrection );
+    }
+
+    inline void estimateIQImbalanceParameters( ComplexSample& sample )
+    {
+        // update Pointer into Buffers
+        m_IQBufferPtr = (m_IQBufferPtr+1)%512;
+        static int cnt = 0;
+        cnt = (cnt+1)%((int)m_SampleRate/(512*8));
+
+        // update Buffers
+        m_IQBuffer0[m_IQBufferPtr] = sample;
+        m_IQBuffer1[m_IQBufferPtr] = sample;
+        m_IQBuffer2[m_IQBufferPtr] = sample;
+
+        if( m_IQBufferPtr == 0 && cnt == 0 ) // if buffer(s) filled, process...
+        {
+            // generate new candidate-values
+            float testPhase0 = m_IQPhaseCorrection +
+                          randomFloat()*M_PI*0.005;
+            float testAmplitude0 = m_IQAmplitudeCorrection +
+                          randomFloat()*0.00001;
+
+            float testPhase1 = m_IQPhaseCorrection +
+                          randomFloat()*M_PI*0.005;
+            float testAmplitude1 = m_IQAmplitudeCorrection +
+                          randomFloat()*0.00001;
+
+            // correct one buffer with current correction-parameters
+            // and correct the other(s) with the new test-parameters
+            for( int n=0; n<512; ++n )
+            {
+                correctIQImbalance( m_IQBuffer0[n] );
+                correctIQImbalance( m_IQBuffer1[n], testPhase0, testAmplitude0 );
+                correctIQImbalance( m_IQBuffer2[n], testPhase1, testAmplitude1 );
+            }
+
+            // weight the result and chose the parameter-set with the better one
+            kiss_fft( m_FFT, (kiss_fft_cpx*)m_IQBuffer0 , (kiss_fft_cpx*)m_IQBuffer3 );
+            kiss_fft( m_FFT, (kiss_fft_cpx*)m_IQBuffer1 , (kiss_fft_cpx*)m_IQBuffer4 );
+            kiss_fft( m_FFT, (kiss_fft_cpx*)m_IQBuffer2 , (kiss_fft_cpx*)m_IQBuffer5 );
+
+            float weight0 = 0;
+            float weight1 = 0;
+            float weight2 = 0;
+
+            for( int n=32; n<255; ++n )
+            {
+                float v1 = fabs(m_IQBuffer3[(512+n)%512]);
+                float v2 = fabs(m_IQBuffer3[(512-n)%512]);
+
+                float v3 = fabs(m_IQBuffer4[(512+n)%512]);
+                float v4 = fabs(m_IQBuffer4[(512-n)%512]);
+
+                float v5 = fabs(m_IQBuffer5[(512+n)%512]);
+                float v6 = fabs(m_IQBuffer5[(512-n)%512]);
+
+                weight0 += (v1-v2)*(v1-v2)*(v1-v2)*(v1-v2)*(v1-v2)*(v1-v2)*(v1-v2)*(v1-v2)*(v1-v2)*(v1-v2)*(v1-v2)*(v1-v2);
+                weight1 += (v3-v4)*(v3-v4)*(v3-v4)*(v3-v4)*(v3-v4)*(v3-v4)*(v3-v4)*(v3-v4)*(v3-v4)*(v3-v4)*(v3-v4)*(v3-v4);
+                weight2 += (v5-v6)*(v5-v6)*(v5-v6)*(v5-v6)*(v5-v6)*(v5-v6)*(v5-v6)*(v5-v6)*(v5-v6)*(v5-v6)*(v5-v6)*(v5-v6);
+            }
+
+            if( weight1 > weight0 && weight1 > weight2 )
+            {
+                m_IQPhaseCorrection = (m_IQPhaseCorrection*9.f+testPhase0)/10.f;
+                m_IQAmplitudeCorrection = (m_IQAmplitudeCorrection*3.f+testAmplitude0)/4.f;
+            }
+            else
+            if( weight2 > weight0 && weight2 > weight1 )
+            {
+                m_IQPhaseCorrection = (m_IQPhaseCorrection*9.f+testPhase1)/10.f;
+                m_IQAmplitudeCorrection = (m_IQAmplitudeCorrection*3.f+testAmplitude1)/4.f;
+            }
+        }
+    }
+
+    inline float randomFloat()
+    {
+        return( (float)rand() / (float)RAND_MAX * 2.f - 1.f );
+    }
 
     private:
     SDRAudio();
@@ -201,7 +298,6 @@ class SDRAudio
         }
     }
 
-
     enum SDR_MODE   m_SDRMode;
 
     double          m_SampleRate;
@@ -226,6 +322,19 @@ class SDRAudio
     int             m_SquelchCount;
 
     AutomaticGainControl* m_AutomaticGainControl;
+
+    float           m_IQPhaseCorrection;
+    float           m_IQAmplitudeCorrection;
+
+    ComplexSample   m_IQBuffer0[512];
+    ComplexSample   m_IQBuffer1[512];
+    ComplexSample   m_IQBuffer2[512];
+    ComplexSample   m_IQBuffer3[512];
+    ComplexSample   m_IQBuffer4[512];
+    ComplexSample   m_IQBuffer5[512];
+    int             m_IQBufferPtr;
+
+    kiss_fft_cfg    m_FFT;
 
     std::fstream    m_SDRLog;
 };

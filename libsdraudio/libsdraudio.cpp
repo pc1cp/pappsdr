@@ -60,6 +60,11 @@ SDRAudio::SDRAudio( float sampleRate )
     m_Phase1 = 0.0;
     m_FilterToneShift = 0.f;
     m_TuneIncrement = 1;
+
+    m_IQPhaseCorrection = 0.f;
+    m_IQAmplitudeCorrection = 0.f;
+
+    m_FFT = kiss_fft_alloc( 512, 0, 0, 0 );
 }
 
 void SDRAudio::updateSignalLevel( ComplexSample& input )
@@ -111,10 +116,10 @@ bool SDRAudio::update( ComplexSample& input, ComplexSample& output )
             output = m_FirFilter0->update( output );
             updateSignalLevel( output );
             output  = m_AutomaticGainControl->update( output );
-            
+
             output *= ComplexSample( (float)cos(m_Phase1),
                                      (float)sin(m_Phase1) );
-                                    
+
             output = m_FirFilter1->update( output );
 
             float sample = output.getI();
@@ -161,7 +166,7 @@ bool SDRAudio::update( ComplexSample& input, ComplexSample& output )
             output = m_FirFilter0->update( output );
 
             updateSignalLevel(output);
-            output = m_AutomaticGainControl->update( output );
+            //output = m_AutomaticGainControl->update( output );
 
             float value = atan2( output.getI(), output.getQ() )/M_PI-
                           atan2( last.  getI(), last  .getQ() )/M_PI;
@@ -169,7 +174,7 @@ bool SDRAudio::update( ComplexSample& input, ComplexSample& output )
             value = (value <= -1.0f)? value+2.0f : value;
             value = (value >= +1.0f)? value-2.0f : value;
 
-            value *= (float)((m_SampleRate/8.0) / (m_FilterBandwidth));
+            value *= (float)((m_SampleRate/5.0) / (m_FilterBandwidth));
 
             value = (value > +1.f)? +1.f:value;
             value = (value < -1.f)? -1.f:value;
@@ -333,7 +338,7 @@ void SDRAudio::setSquelchLevel( float level )
     m_SquelchLevel = level;
 }
 
-void SDRAudio::setAGCTime( double upTime, double downTime )
+void SDRAudio::setAGCTime( double upTime, double )
 {
     if( m_AutomaticGainControl )
     {
