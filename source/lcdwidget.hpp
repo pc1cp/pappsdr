@@ -19,7 +19,7 @@ class wxCustomLCDisplay : public wxPanel
 {
     public:
     wxCustomLCDisplay(wxWindow* parent);
-   ~wxCustomLCDisplay();
+    virtual ~wxCustomLCDisplay();
 
     void onPaint    ( wxPaintEvent& event );
 	void onErase	( wxEraseEvent& event );
@@ -46,7 +46,7 @@ class wxCustomLCDisplay : public wxPanel
     void onClicked   ( wxMouseEvent& event );
     void onEnter     ( wxMouseEvent& event );
     void onLeave     ( wxMouseEvent& event );
-    
+
     void renderDigit ( wxDC& dc, wxCoord x, wxCoord y, int number, bool size );
     void renderNumber( wxDC& dc, wxCoord x, wxCoord y, int number );
 

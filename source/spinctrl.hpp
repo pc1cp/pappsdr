@@ -16,8 +16,7 @@ class wxCustomSpinCtrl : public wxPanel
                       float             max       = +100.0f,
                       float             initial   =    0.0f,
                       float             increment =    1.0f,
-                      int               digits    =       2,
-                      const wxString&   name      = _T("wxSpinCtrl") );
+                      int               digits    =       2 );
 
    ~wxCustomSpinCtrl();
 

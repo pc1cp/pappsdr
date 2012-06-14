@@ -11,6 +11,7 @@
 #include "fftwidget.hpp"
 #include "pushbutton.hpp"
 #include "separator.hpp"
+#include "levelmeter.hpp"
 
 #include "config.hpp"
 

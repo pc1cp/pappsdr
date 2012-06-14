@@ -57,7 +57,6 @@ GlobalConfig::GlobalConfig()
         for( int i=0; i<nDevices; i++ )
         {
             DeviceInfo = Pa_GetDeviceInfo( i );
-			const PaHostApiInfo* HostApiInfo = Pa_GetHostApiInfo( DeviceInfo->hostApi );
 
 #ifndef _WIN32
             if( DeviceInfo->maxOutputChannels >= 2 )
@@ -69,6 +68,8 @@ GlobalConfig::GlobalConfig()
                 m_AudioOutputDevices.push_back( entry );
             }
 #else
+			const PaHostApiInfo* HostApiInfo = Pa_GetHostApiInfo( DeviceInfo->hostApi );
+
             if( DeviceInfo->maxOutputChannels >= 2 &&
 				HostApiInfo->type == paWDMKS      )
             {
@@ -115,7 +116,6 @@ GlobalConfig::GlobalConfig()
         for( int i=0; i<nDevices; i++ )
         {
             DeviceInfo = Pa_GetDeviceInfo( i );
-			const PaHostApiInfo* HostApiInfo = Pa_GetHostApiInfo( DeviceInfo->hostApi );
 
 #ifndef _WIN32
             if( DeviceInfo->maxInputChannels >= 2 )
@@ -127,6 +127,8 @@ GlobalConfig::GlobalConfig()
                 m_AudioInputDevices.push_back( entry );
             }
 #else
+			const PaHostApiInfo* HostApiInfo = Pa_GetHostApiInfo( DeviceInfo->hostApi );
+
             if( DeviceInfo->maxInputChannels >= 2 &&
 				HostApiInfo->type == paWDMKS      )
             {
@@ -410,6 +412,26 @@ float GlobalConfig::getSignalLevel()
 		m_AudioThread->IsRunning())
     {
         return( m_AudioThread->getSignalLevel() );
+    }
+    return( 0.f );
+}
+
+float GlobalConfig::getInputLevel()
+{
+    if( m_AudioThread and
+		m_AudioThread->IsRunning())
+    {
+        return( m_AudioThread->getInputLevel() );
+    }
+    return( 0.f );
+}
+
+float GlobalConfig::getOutputLevel()
+{
+    if( m_AudioThread and
+		m_AudioThread->IsRunning())
+    {
+        return( m_AudioThread->getOutputLevel() );
     }
     return( 0.f );
 }

@@ -14,15 +14,14 @@ wxCustomSpinCtrl::wxCustomSpinCtrl( wxWindow*         parent,
                                     float             max,
                                     float             initial,
                                     float             increment,
-                                    int               digits,
-                                    const wxString&   name )
+                                    int               digits )
     :
     wxPanel    ( parent    ),
     m_Parent   ( parent    ),
     m_ID       ( id        ),
     m_Value    ( initial   ),
-    m_MinValue ( min       ),
     m_MaxValue ( max       ),
+    m_MinValue ( min       ),
     m_Increment( increment ),
     m_Digits   ( digits    )
 {
@@ -47,8 +46,16 @@ wxCustomSpinCtrl::~wxCustomSpinCtrl()
 
 void wxCustomSpinCtrl::setValue( float value )
 {
-    value > m_MaxValue? m_MaxValue:value;
-    value < m_MinValue? m_MinValue:value;
+    if( value > m_MaxValue )
+    {
+        value = m_MaxValue;
+    }
+    else
+    if( value < m_MinValue )
+    {
+        value = m_MinValue;
+    }
+
     m_Value = value;
     printValue( m_Value );
 }
@@ -64,37 +71,37 @@ void wxCustomSpinCtrl::printValue( float value )
     switch( m_Digits )
     {
         case 0 :
-            valueStr.Printf( _("%0.0f"), m_Value );
+            valueStr.Printf( _("%0.0f"), value );
             break;
         case 1 :
-            valueStr.Printf( _("%0.1f"), m_Value );
+            valueStr.Printf( _("%0.1f"), value );
             break;
         case 2 :
-            valueStr.Printf( _("%0.2f"), m_Value );
+            valueStr.Printf( _("%0.2f"), value );
             break;
         case 3 :
-            valueStr.Printf( _("%0.3f"), m_Value );
+            valueStr.Printf( _("%0.3f"), value );
             break;
         case 4 :
-            valueStr.Printf( _("%0.4f"), m_Value );
+            valueStr.Printf( _("%0.4f"), value );
             break;
         case 5 :
-            valueStr.Printf( _("%0.5f"), m_Value );
+            valueStr.Printf( _("%0.5f"), value );
             break;
         case 6 :
-            valueStr.Printf( _("%0.6f"), m_Value );
+            valueStr.Printf( _("%0.6f"), value );
             break;
         case 7 :
-            valueStr.Printf( _("%0.7f"), m_Value );
+            valueStr.Printf( _("%0.7f"), value );
             break;
         case 8 :
-            valueStr.Printf( _("%0.8f"), m_Value );
+            valueStr.Printf( _("%0.8f"), value );
             break;
         case 9 :
-            valueStr.Printf( _("%0.9f"), m_Value );
+            valueStr.Printf( _("%0.9f"), value );
             break;
         default:
-            valueStr.Printf( _("%f"), m_Value );
+            valueStr.Printf( _("%f"), value );
             break;
     }
     m_TextControl->SetValue( valueStr );

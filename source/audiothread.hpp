@@ -41,6 +41,8 @@ class AudioThread: public wxThread
     AudioQueue* getFFTQueueAF   ();
 
     float       getSignalLevel  ();
+    float       getInputLevel   ();
+    float       getOutputLevel  ();
     float       getSquelchLevel ();
     void        setSquelchLevel (float level);
 
@@ -88,6 +90,9 @@ class AudioThread: public wxThread
     static AudioQueue          m_AudioFFTQueue;
 
     float               m_AttenuatorValue;
+
+    float               m_InputLevel;
+    float               m_OutputLevel;
 
     wxMutex             m_ReconfigureLock;
     bool                m_ReconfigureFlag;

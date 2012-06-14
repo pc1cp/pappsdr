@@ -381,7 +381,7 @@ void wxCustomConfigDialog::onSampleRateReal( wxCommandEvent& WXUNUSED(event) )
 
 void wxCustomConfigDialog::onSampleRatePPM( wxCommandEvent& WXUNUSED(event) )
 {
-    GlobalConfig* config=GlobalConfig::getInstance();
+    //GlobalConfig* config=GlobalConfig::getInstance();
 
     int sampleRateIndex = m_SampleRateChoice->GetSelection();
 

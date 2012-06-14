@@ -278,30 +278,28 @@ bool MyApp::OnInit()
 
     result = m_Pappradio->open();
 
-    if( result != Pappradio::ERR_NONE )
+    switch( result )
     {
-        switch( result )
+        case Pappradio::ERR_INIT_FQDATA:
         {
-            case Pappradio::ERR_INIT_FQDATA:
-            {
-                config->Log( "*** ERROR: Loading fqdata.dat failed." );
-                break;
-            }
-            case Pappradio::ERR_NOT_FOUND:
-            {
-                config->Log( "*** ERROR: Pappradio not found on USB." );
-                break;
-            }
-            case Pappradio::ERR_PRODUCT_MISMATCH:
-            {
-                config->Log( "*** ERROR: Unsupported hardware-version." );
-                break;
-            }
+            config->Log( "*** ERROR: Loading fqdata.dat failed." );
+            break;
         }
-    }
-    else
-    {
-        config->Log( "*** SUCCESS: Pappradio opened." );
+        case Pappradio::ERR_NOT_FOUND:
+        {
+            config->Log( "*** ERROR: Pappradio not found on USB." );
+            break;
+        }
+        case Pappradio::ERR_PRODUCT_MISMATCH:
+        {
+            config->Log( "*** ERROR: Unsupported hardware-version." );
+            break;
+        }
+        case Pappradio::ERR_NONE:
+        {
+            config->Log( "*** SUCCESS: Pappradio opened." );
+            break;
+        }
     }
 
     config->startAudioThread();
@@ -476,6 +474,8 @@ MyFrame::MyFrame(const wxString& title, Pappradio* pappradio )
     BoxSizer2->Add( BoxSizer3 );
     BoxSizer2->Add( audioBox );
 
+    BoxSizer2->Add( new wxCustomLevelMeter(this));
+
     this->SetBackgroundColour( wxColour( 33,33,33 ) );
 
     // -----------------------------------------------------------------------
@@ -539,6 +539,9 @@ MyFrame::MyFrame(const wxString& title, Pappradio* pappradio )
             m_PushButtonAM ->setValue(false);
             m_PushButtonFM ->setValue(true );
             break;
+        }
+        default: // all others do nothing
+        {
         }
     }
 
@@ -646,7 +649,7 @@ MyFrame::~MyFrame()
 {
 }
 
-void MyFrame::onTimer( wxTimerEvent& event )
+void MyFrame::onTimer( wxTimerEvent& WXUNUSED(event) )
 {
     GlobalConfig* config = GlobalConfig::getInstance();
 
@@ -658,7 +661,7 @@ void MyFrame::onTimer( wxTimerEvent& event )
 
     if( FindFocus() == 0 ) return;
 
-    if(  wxGetKeyState(WXK_RIGHT   ) ) 
+    if(  wxGetKeyState(WXK_RIGHT   ) )
     {
         if( countVFO < +100 )
         {
@@ -666,7 +669,7 @@ void MyFrame::onTimer( wxTimerEvent& event )
         }
 	}
     else
-    if(  wxGetKeyState(WXK_LEFT    ) ) 
+    if(  wxGetKeyState(WXK_LEFT    ) )
     {
         if( countVFO > -100 )
         {
@@ -674,13 +677,13 @@ void MyFrame::onTimer( wxTimerEvent& event )
         }
 	}
     else
-    if( !wxGetKeyState(WXK_LEFT    ) && 
-        !wxGetKeyState(WXK_RIGHT   ) ) 
+    if( !wxGetKeyState(WXK_LEFT    ) &&
+        !wxGetKeyState(WXK_RIGHT   ) )
     {
         countVFO     = 0;
 	}
 
-    if(  wxGetKeyState(WXK_UP ) ) 
+    if(  wxGetKeyState(WXK_UP ) )
     {
         if( countLO < +100 )
         {
@@ -688,7 +691,7 @@ void MyFrame::onTimer( wxTimerEvent& event )
         }
 	}
     else
-    if(  wxGetKeyState(WXK_DOWN ) ) 
+    if(  wxGetKeyState(WXK_DOWN ) )
     {
         if( countLO > -100 )
         {
@@ -696,8 +699,8 @@ void MyFrame::onTimer( wxTimerEvent& event )
         }
 	}
     else
-    if( !wxGetKeyState(WXK_UP   ) && 
-        !wxGetKeyState(WXK_DOWN ) ) 
+    if( !wxGetKeyState(WXK_UP   ) &&
+        !wxGetKeyState(WXK_DOWN ) )
     {
         countLO = 0;
 	}
@@ -705,7 +708,7 @@ void MyFrame::onTimer( wxTimerEvent& event )
     if( countVFO != 0 )
     {
         int sign = ( countVFO > 0 )? +1:-1;
-        
+
         if( abs(countVFO) < 5 )
         {
             incrementVFO = 1;
@@ -735,7 +738,7 @@ void MyFrame::onTimer( wxTimerEvent& event )
     if( countLO != 0 )
     {
         int sign = ( countLO > 0 )? +1:-1;
-        
+
         if( abs(countLO) < 20 )
         {
             incrementLO = 1000;
@@ -1343,7 +1346,7 @@ void MyFrame::onButtonDNROFF( wxCommandEvent& WXUNUSED(event) )
 void MyFrame::onButtonDNRON( wxCommandEvent& WXUNUSED(event) )
 {
     GlobalConfig* config = GlobalConfig::getInstance();
-    config->setDNR( 0.3333 );
+    config->setDNR( 0.5 );
     m_PushButtonDNROff->setValue(false);
     m_PushButtonDNROn ->setValue(true);
 }
@@ -1351,6 +1354,7 @@ void MyFrame::onButtonDNRON( wxCommandEvent& WXUNUSED(event) )
 void MyFrame::onMouseWheel( wxMouseEvent& event )
 {
     GlobalConfig* config = GlobalConfig::getInstance();
+    double const nyquist = config->getSampleRate()*0.5;
 
     int increment = 100;
 
@@ -1361,11 +1365,31 @@ void MyFrame::onMouseWheel( wxMouseEvent& event )
     if( event.GetWheelRotation() > 0 )
     {
         m_LCDisplay->setFreq( m_LCDisplay->getFreq()+increment );
+        if( m_LCDisplay->getFreq() > ( 0.75 * nyquist ) )
+        {
+
+            double currentLOFreq = m_Pappradio->getFrequency();
+            double deltaFreq = 0.25*nyquist;
+            double newLOFreq = currentLOFreq + deltaFreq;
+            double newVFOFreq = m_LCDisplay->getFreq() - deltaFreq;
+            m_LCDisplay->setFreq( newVFOFreq );
+            m_Pappradio->setFrequency( newLOFreq );
+        }
     }
     else
     if( event.GetWheelRotation() < 0 )
     {
         m_LCDisplay->setFreq( m_LCDisplay->getFreq()-increment );
+        if( m_LCDisplay->getFreq() < -( 0.75 * nyquist ) )
+        {
+
+            double currentLOFreq = m_Pappradio->getFrequency();
+            double deltaFreq = 0.25*nyquist;
+            double newLOFreq = currentLOFreq - deltaFreq;
+            double newVFOFreq = m_LCDisplay->getFreq() + deltaFreq;
+            m_LCDisplay->setFreq( newVFOFreq );
+            m_Pappradio->setFrequency( newLOFreq );
+        }
     }
     config->setTune( m_LCDisplay->getFreq() );
 

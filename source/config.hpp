@@ -239,7 +239,7 @@ class GlobalLogging : public wxFrame
         timeStamp.Printf( _("[ %02i:%02i:%02i ]   "), hour, minute, second );
         wxMutexLocker lock( m_LogMutex );
         m_LogFile << timeStamp.c_str() << text;
-        m_MessageStack.push_back( std::string(timeStamp.c_str())+text );
+        m_MessageStack.push_back( std::string(timeStamp.mb_str())+text );
     }
 
     void onTimer( wxTimerEvent& WXUNUSED(event) )
@@ -247,7 +247,8 @@ class GlobalLogging : public wxFrame
         wxMutexLocker lock( m_LogMutex );
         for( unsigned int n=0; n<m_MessageStack.size(); ++n )
         {
-            *m_TextCtrl << m_MessageStack[n] << "\n";
+            wxString message = wxString( m_MessageStack[n].c_str(), wxConvUTF8 );
+            *m_TextCtrl << message << _("\n");
         }
         m_MessageStack.clear();
     }
@@ -324,6 +325,8 @@ class GlobalConfig
     AudioQueue* getFFTQueueAF();
 
     float       getSignalLevel();
+    float       getInputLevel();
+    float       getOutputLevel();
     float       getSquelchLevel();
     void        setSquelchLevel(float level);
     void        setFilter( float bandwidth );
@@ -358,7 +361,7 @@ class GlobalConfig
         vsnprintf( buffer, n, format, va );
         va_end(va);
         if( m_LoggingWindow )
-        { 
+        {
             m_LoggingWindow->logMessage( std::string( buffer ) );
         }
     }

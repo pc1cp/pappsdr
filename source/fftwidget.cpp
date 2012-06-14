@@ -255,7 +255,6 @@ void wxCustomFFTDisplay::updateWaterfall()
     float r=0;
     float g=0;
     float b=0;
-    float blend;
 
     // transfer amplitude-buffer into current line of waterfall-image
     int const iMax = (m_Mode == FFT_RADIOFREQ)? 1024:512;
@@ -280,9 +279,9 @@ void wxCustomFFTDisplay::updateWaterfall()
 
         if( value < 0 )
             value = 0;
-        if( value > 1 )
-            value = 1;
-        
+        if( value > 0.999999 )
+            value = 0.999999;
+
         #if 0
         if( value < 0.20 )
         {
@@ -816,7 +815,7 @@ void wxCustomFFTDisplay::onTimer( wxTimerEvent& WXUNUSED(event) )
         int nrOfSamples = config->getSampleRate();
         nrOfSamples = config->getSampleRate()/30.0;
 
-        // copy into ringbuffer 
+        // copy into ringbuffer
         fftQueue->lock();
         int readCount=0;
         while( fftQueue->getLength() > 1000 && readCount < nrOfSamples )
@@ -841,7 +840,7 @@ void wxCustomFFTDisplay::onTimer( wxTimerEvent& WXUNUSED(event) )
 
         kiss_fft( m_KissCFG, m_iBuffer, m_oBuffer0);
 
-        // copy into ringbuffer 
+        // copy into ringbuffer
         fftQueue->lock();
         readCount=0;
         while( fftQueue->getLength() > 1000 && readCount < nrOfSamples )

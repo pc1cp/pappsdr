@@ -44,6 +44,8 @@ AudioThread::AudioThread()
     // set Attenuator = 0.0 dB
     m_AttenuatorValue = 1.f;
 
+    m_InputLevel = 0.5f;
+
 	config->Log( "        OutputQueue-Size = %i",   m_OutputQueue.size() );
 	config->Log( "         InputQueue-Size = %i",    m_InputQueue.size() );
 	config->Log( "       AF-FFT-Queue-Size = %i", m_AudioFFTQueue.size() );
@@ -58,7 +60,7 @@ void* AudioThread::Entry()
 {
 	GlobalConfig* config = GlobalConfig::getInstance();
     config->Log( "AudioThread::Entry();" );
-    
+
     m_Done = false;
 
     m_PaStreamIsActive = false;
@@ -153,7 +155,12 @@ void* AudioThread::Entry()
 
                 cnt = (cnt+1)%80;
                 if( cnt==0 )
-                config->Log( "Audiothread-STATE: RUNNING" );
+                {
+                    double cpuLoad = Pa_GetStreamCpuLoad( m_PaStream );
+
+                    config->Log( "Audiothread-STATE: RUNNING (%f)",
+                                 floor(cpuLoad*1000.0+0.5)/10.0 );
+                }
 
                 // Check for reconfiguration-request...
                 m_ReconfigureLock.Lock();
@@ -319,9 +326,9 @@ void    AudioThread::Configure()
         // try to get some information on the
         // error...
         const PaHostErrorInfo* errorInfo = Pa_GetLastHostErrorInfo();
-        config->Log( "PaGetLastErrorInfo: %i %i %s", 
-                     (int)errorInfo->hostApiType, 
-                     errorInfo->errorCode, 
+        config->Log( "PaGetLastErrorInfo: %i %i %s",
+                     (int)errorInfo->hostApiType,
+                     errorInfo->errorCode,
                      errorInfo->errorText );
     }
 }
@@ -405,10 +412,21 @@ int AudioThread::PaCallback( const void * iDataPtr,
     ComplexSample*  iData  = (ComplexSample*)iDataPtr;
     ComplexSample*  oData  = (ComplexSample*)oDataPtr;
 
+    // Correct imbalance
+    //for( unsigned long n=0; n<frames; ++n )
+    //{
+    //}
+
     // update Waterfall/FFT-Buffer
     _this_->m_InputQueue.lock();
     for( unsigned long n=0; n<frames; ++n )
     {
+        _this_->m_SDRAudio->estimateIQImbalanceParameters( iData[n] );
+        _this_->m_SDRAudio->correctIQImbalance( iData[n] );
+
+        if( _this_->m_InputLevel < fabs( iData[n] ) )
+            _this_->m_InputLevel = fabs( iData[n] );
+
         ComplexSample iSample = iData[n]*_this_->m_AttenuatorValue;
         _this_->m_InputQueue.put( iSample );
     }
@@ -419,10 +437,13 @@ int AudioThread::PaCallback( const void * iDataPtr,
     {
         ComplexSample iSample = iData[n]*_this_->m_AttenuatorValue;
         oData[n] = _this_->m_SDRAudio->demodulate( iSample );
+        if( _this_->m_OutputLevel < fabs( oData[n].getI() ) )
+            _this_->m_OutputLevel = fabs( oData[n].getI() );
+        if( _this_->m_OutputLevel < fabs( oData[n].getQ() ) )
+            _this_->m_OutputLevel = fabs( oData[n].getQ() );
     }
 
     // update Waterfall/FFT-Buffer for decoded audio
-    double coreRate = _this_->m_SDRAudio->getSampleRate();
     double inputRate = _this_->m_SDRAudio->getSampleRate();
 
     int ratio = inputRate/12000.0;// inputRate/coreRate;
@@ -525,6 +546,20 @@ float AudioThread::getSignalLevel()
     }
 
     return( 0.f );
+}
+
+float AudioThread::getInputLevel()
+{
+    float returnValue = m_InputLevel;
+    m_InputLevel = 0.0001f;
+    return( returnValue );
+}
+
+float AudioThread::getOutputLevel()
+{
+    float returnValue = m_OutputLevel;
+    m_OutputLevel = 0.0001f;
+    return( returnValue );
 }
 
 float AudioThread::getSquelchLevel()
